@@ -196,6 +196,8 @@ const App: React.FC = () => {
               try {
                 const result = await storage.fetchFromCloud(state.scriptUrl);
                 if (result) {
+                  console.log("Sync - Données reçues:", result);
+                  console.log(`Sync - ${result.books.length} livres, ${result.genres.length} genres, ${result.members.length} membres`);
                   setState(prev => ({ ...prev, ...result }));
                   storage.saveAllData(result);
                   setSyncStatus('success');
@@ -524,10 +526,12 @@ const App: React.FC = () => {
                         try {
                           const result = await storage.fetchFromCloud(state.scriptUrl);
                           if (result) {
-                            if (confirm(`Trouvé : ${result.books.length} livres, ${result.reviews.length} avis. Remplacer les données locales ?`)) {
+                            console.log("Données reçues:", result);
+                            const msg = `Trouvé :\n• ${result.books.length} livres\n• ${result.reviews.length} avis\n• ${result.genres.length} genres\n• ${result.members.length} membres\n\nRemplacer les données locales ?`;
+                            if (confirm(msg)) {
                               setState(prev => ({ ...prev, ...result }));
                               storage.saveAllData(result);
-                              alert("Données chargées avec succès !");
+                              alert(`Données chargées avec succès !\n\nGenres: ${result.genres.join(', ')}\nMembres: ${result.members.join(', ')}`);
                             }
                           }
                         } catch (e: any) {
