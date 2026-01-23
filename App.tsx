@@ -189,6 +189,28 @@ const App: React.FC = () => {
           {syncStatus === 'success' && <span className="text-xs font-bold text-green-600 self-center">✅ Sauvegardé</span>}
           {syncStatus === 'error' && <span className="text-xs font-bold text-red-600 self-center">⚠️ Erreur Synchro</span>}
 
+          <button
+            onClick={async () => {
+              if (!state.scriptUrl) return alert("Aucune URL de synchronisation configurée");
+              setSyncStatus('syncing');
+              try {
+                const result = await storage.fetchFromCloud(state.scriptUrl);
+                if (result) {
+                  setState(prev => ({ ...prev, ...result }));
+                  storage.saveAllData(result);
+                  setSyncStatus('success');
+                  setTimeout(() => setSyncStatus('idle' as any), 3000);
+                }
+              } catch (e: any) {
+                setSyncStatus('error');
+                alert("Erreur: " + e.message);
+              }
+            }}
+            className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold hover:bg-purple-50 transition-colors"
+            title="Actualiser depuis Google Sheets"
+          >
+            🔄
+          </button>
           <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold">
             {viewMode === 'grid' ? '📄 Liste' : '🔲 Grille'}
           </button>
@@ -390,9 +412,10 @@ const App: React.FC = () => {
                             e.preventDefault();
                             if (window.confirm(`Voulez-vous vraiment supprimer le genre "${g}" ?`)) {
                               const updated = state.genres.filter((_, i) => i !== idx);
+                              const newState = { ...state, genres: updated };
                               setState(prev => ({ ...prev, genres: updated }));
                               storage.saveLocalGenres(updated);
-                              storage.autoSync(state.scriptUrl, { ...state, genres: updated }, setSyncStatus);
+                              storage.autoSync(state.scriptUrl, newState, setSyncStatus);
                             }
                           }}
                           className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-stone-50 rounded-full transition-colors cursor-pointer"
@@ -438,9 +461,10 @@ const App: React.FC = () => {
                             e.preventDefault();
                             if (window.confirm(`Voulez-vous vraiment supprimer le membre "${m}" ?`)) {
                               const updated = state.members.filter((_, i) => i !== idx);
+                              const newState = { ...state, members: updated };
                               setState(prev => ({ ...prev, members: updated }));
                               storage.saveLocalMembers(updated);
-                              storage.autoSync(state.scriptUrl, { ...state, members: updated }, setSyncStatus);
+                              storage.autoSync(state.scriptUrl, newState, setSyncStatus);
                             }
                           }}
                           className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-stone-50 rounded-full transition-colors cursor-pointer"
