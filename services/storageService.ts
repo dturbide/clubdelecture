@@ -83,7 +83,14 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
     console.log("Fetching from:", url);
     // Add cache buster to avoid browser caching
     const fetchUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
-    const response = await fetch(fetchUrl);
+    // Use redirect: 'follow' to handle Google's redirects properly
+    const response = await fetch(fetchUrl, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
     if (!response.ok) throw new Error(`Erreur réseau: ${response.status} ${response.statusText}`);
 
     const text = await response.text();
