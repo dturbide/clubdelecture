@@ -145,8 +145,12 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
         members: rawMembers
       };
     } catch (e) {
-      console.error("JSON Parse Error. Received:", text.substring(0, 100));
-      throw new Error("La réponse de Google n'est pas du JSON valide. Vérifiez le déploiement du script (doit être 'Anyone').");
+      console.error("JSON Parse Error. Received:", text.substring(0, 500));
+      // Check if it's an HTML response (login page or error)
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        throw new Error("Google renvoie une page HTML au lieu de JSON. Causes possibles:\n1. Script non déployé en 'Anyone' (Tout le monde)\n2. Nouveau déploiement requis après modification du script\n3. URL incorrecte (utilisez l'URL de déploiement Web App)");
+      }
+      throw new Error(`Réponse invalide de Google: ${text.substring(0, 100)}...`);
     }
   } catch (error: any) {
     console.error("Cloud fetch failed:", error);
