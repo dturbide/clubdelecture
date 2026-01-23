@@ -760,6 +760,24 @@ const App: React.FC = () => {
                 {editingBook ? 'Mettre à jour' : 'Ajouter au club'}
               </button>
               <button type="button" onClick={() => { setIsAddBookOpen(false); setEditingBook(null); }} className="w-full py-2 text-stone-400 text-sm font-medium">Annuler</button>
+              {editingBook && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Supprimer "${editingBook.title}" ? Cette action est irréversible.`)) {
+                      const updatedBooks = state.books.filter(b => b.id !== editingBook.id);
+                      setState(prev => ({ ...prev, books: updatedBooks }));
+                      storage.saveLocalBooks(updatedBooks);
+                      storage.autoSync(state.scriptUrl, { ...state, books: updatedBooks }, setSyncStatus);
+                      setIsAddBookOpen(false);
+                      setEditingBook(null);
+                    }
+                  }}
+                  className="w-full py-3 mt-4 text-red-600 bg-red-50 border border-red-200 rounded-xl text-sm font-bold hover:bg-red-100 transition-colors"
+                >
+                  🗑️ Supprimer ce livre
+                </button>
+              )}
             </form>
           </div>
         </div>
