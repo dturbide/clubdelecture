@@ -48,6 +48,7 @@ const App: React.FC = () => {
   const [isSearchingCover, setIsSearchingCover] = useState(false);
   const [coverResults, setCoverResults] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<Book | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const csvInputRef = useRef<HTMLInputElement>(null);
 
@@ -302,6 +303,9 @@ const App: React.FC = () => {
           </button>
           <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold">
             {viewMode === 'grid' ? '📄 Liste' : '🔲 Grille'}
+          </button>
+          <button onClick={() => setIsGuideOpen(true)} className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold hover:bg-blue-50 transition-colors" title="Guide d'utilisation">
+            ❓
           </button>
           <button onClick={() => setIsAdminOpen(true)} className="px-5 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-amber-700 transition-colors">⚙️ ADMINISTRATION</button>
         </div>
@@ -903,6 +907,98 @@ const App: React.FC = () => {
               >
                 Supprimer
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Guide d'utilisation */}
+      {isGuideOpen && (
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-lg z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-white border-b border-stone-100 p-6 flex justify-between items-center">
+              <h2 className="font-serif text-2xl font-bold text-stone-800">📚 Guide d'utilisation</h2>
+              <button onClick={() => setIsGuideOpen(false)} className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-500 text-xl transition-colors">✕</button>
+            </div>
+            <div className="p-6 space-y-8">
+              {/* Section 1: Sélectionner son profil */}
+              <section>
+                <h3 className="text-lg font-bold text-amber-700 mb-3 flex items-center gap-2">👤 1. Sélectionner votre profil</h3>
+                <p className="text-stone-600 text-sm leading-relaxed">
+                  Dans la barre latérale, sélectionnez votre nom dans le menu <strong>"Membre Actif"</strong> (fond noir). 
+                  Cela détermine l'attribution de vos propositions et la possibilité de modifier vos livres.
+                </p>
+              </section>
+
+              {/* Section 2: Proposer un livre */}
+              <section>
+                <h3 className="text-lg font-bold text-amber-700 mb-3 flex items-center gap-2">📖 2. Proposer un livre</h3>
+                <ol className="text-stone-600 text-sm leading-relaxed list-decimal list-inside space-y-2">
+                  <li>Cliquez sur <strong>"+ Proposer un livre"</strong> (bouton jaune en bas de la barre latérale)</li>
+                  <li>Remplissez le titre et l'auteur</li>
+                  <li>Cliquez sur <strong>"🔍 Chercher"</strong> pour trouver une couverture automatiquement</li>
+                  <li>Sélectionnez le genre et donnez votre évaluation personnelle (étoiles)</li>
+                  <li>Cliquez sur <strong>"Ajouter au club"</strong></li>
+                </ol>
+              </section>
+
+              {/* Section 3: Modifier un livre */}
+              <section className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                <h3 className="text-lg font-bold text-amber-700 mb-3 flex items-center gap-2">✏️ 3. Modifier une proposition</h3>
+                <p className="text-stone-600 text-sm mb-3">⚠️ <strong>Vous pouvez uniquement modifier VOS livres.</strong></p>
+                <ul className="text-stone-600 text-sm leading-relaxed space-y-2">
+                  <li><strong>Mode Grille :</strong> Survolez la carte → cliquez sur le bouton crayon ✏️</li>
+                  <li><strong>Mode Liste :</strong> Survolez la ligne → cliquez sur le bouton crayon ✏️</li>
+                  <li><strong>Vue détaillée :</strong> Ouvrez les détails → bouton "✏️ Modifier"</li>
+                </ul>
+              </section>
+
+              {/* Section 4: Supprimer un livre */}
+              <section>
+                <h3 className="text-lg font-bold text-amber-700 mb-3 flex items-center gap-2">🗑️ 4. Supprimer un livre</h3>
+                <p className="text-stone-600 text-sm leading-relaxed">
+                  Ouvrez le formulaire de modification, puis cliquez sur <strong>"🗑️ Supprimer ce livre"</strong> en bas. 
+                  Confirmez dans le modal qui apparaît. <span className="text-red-600 font-bold">Action irréversible.</span>
+                </p>
+              </section>
+
+              {/* Section 5: Ajouter un avis */}
+              <section>
+                <h3 className="text-lg font-bold text-amber-700 mb-3 flex items-center gap-2">⭐ 5. Ajouter un avis</h3>
+                <ol className="text-stone-600 text-sm leading-relaxed list-decimal list-inside space-y-2">
+                  <li>Cliquez sur un livre pour voir ses détails</li>
+                  <li>Cliquez sur <strong>"+ Ajouter un avis"</strong></li>
+                  <li>Donnez une note (1-5 étoiles) et écrivez votre commentaire</li>
+                  <li>Cliquez sur <strong>"Publier l'avis"</strong></li>
+                </ol>
+              </section>
+
+              {/* Section 6: Filtres */}
+              <section>
+                <h3 className="text-lg font-bold text-amber-700 mb-3 flex items-center gap-2">🔍 6. Filtres et recherche</h3>
+                <ul className="text-stone-600 text-sm leading-relaxed space-y-1">
+                  <li><strong>Recherche :</strong> Tapez un titre ou auteur</li>
+                  <li><strong>Genre :</strong> Filtrez par catégorie littéraire</li>
+                  <li><strong>Présenté par :</strong> Filtrez par membre ou "Mes propositions"</li>
+                  <li><strong>Année :</strong> Filtrez par année de proposition</li>
+                  <li><strong>Tri :</strong> Récents ou alphabétique (A-Z)</li>
+                </ul>
+              </section>
+
+              {/* Section 7: Boutons rapides */}
+              <section className="bg-stone-50 p-4 rounded-xl">
+                <h3 className="text-lg font-bold text-stone-700 mb-3">🎯 Résumé des boutons</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2"><span className="text-lg">🔄</span> Actualiser depuis le cloud</div>
+                  <div className="flex items-center gap-2"><span className="text-lg">📄/🔲</span> Basculer liste/grille</div>
+                  <div className="flex items-center gap-2"><span className="text-lg">❓</span> Ce guide</div>
+                  <div className="flex items-center gap-2"><span className="text-lg">⚙️</span> Administration</div>
+                </div>
+              </section>
+
+              <p className="text-center text-xs text-stone-400 pt-4 border-t border-stone-100">
+                Mot de passe admin : <code className="bg-stone-100 px-2 py-1 rounded">club-lecture-2024</code>
+              </p>
             </div>
           </div>
         </div>
