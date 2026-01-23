@@ -88,13 +88,18 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
     try {
       const data = JSON.parse(text);
 
-      // Validation basique
-      if (!data.Livres && !data.Avis) {
-        console.warn("Format de données suspect (pas de Livres/Avis):", data);
+      // Validation basique (Supporte Livres ou books)
+      if (!data.Livres && !data.books && !data.Avis && !data.reviews) {
+        console.warn("Format de données suspect (pas de Livres/Avis ni books/reviews):", data);
       }
 
-      // Map French headers back to internal structure
-      const books = (data.Livres || []).map((b: any) => ({
+      const rawBooks = data.Livres || data.books || [];
+      const rawReviews = data.Avis || data.reviews || [];
+      const rawGenres = data.Genres || data.genres || [];
+      const rawMembers = data.Membres || data.members || [];
+
+      // Map French headers (or English fallbacks) back to internal structure
+      const books = rawBooks.map((b: any) => ({
         id: b.id || b["id"] || `book-${Date.now()}-${Math.random()}`,
         createdAt: b["Horodatage"] || b.createdAt || new Date().toISOString(),
         addedBy: b["Présenté.e par"] || b.addedBy || "Inconnu",
@@ -108,7 +113,7 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
       }));
 
       // Parse nested JSON if needed
-      const reviews = (data.Avis || []).map((r: any) => ({
+      const reviews = rawReviews.map((r: any) => ({
         ...r,
         aiAnalysis: typeof r.aiAnalysis === 'string' ? JSON.parse(r.aiAnalysis) : r.aiAnalysis
       }));
@@ -116,8 +121,8 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
       return {
         books,
         reviews,
-        genres: data.Genres || [],
-        members: data.Membres || []
+        genres: rawGenres,
+        members: rawMembers
       };
     } catch (e) {
       console.error("JSON Parse Error. Received:", text.substring(0, 100));
