@@ -137,11 +137,18 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
 
       console.log("Mapped books sample:", books[0]);
 
-      // Parse nested JSON if needed
-      const reviews = rawReviews.map((r: any) => ({
-        ...r,
-        aiAnalysis: typeof r.aiAnalysis === 'string' ? JSON.parse(r.aiAnalysis) : r.aiAnalysis
-      }));
+      // Parse nested JSON if needed (with error handling)
+      const reviews = rawReviews.map((r: any) => {
+        let aiAnalysis = r.aiAnalysis;
+        if (typeof aiAnalysis === 'string' && aiAnalysis.trim()) {
+          try {
+            aiAnalysis = JSON.parse(aiAnalysis);
+          } catch {
+            aiAnalysis = undefined;
+          }
+        }
+        return { ...r, aiAnalysis };
+      });
 
       if (books.length === 0) console.warn("Attention: Aucune donnée 'livres' trouvée dans la réponse JSON.");
 
@@ -151,13 +158,14 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
         genres: rawGenres,
         members: rawMembers
       };
-    } catch (e) {
-      console.error("JSON Parse Error. Received:", text.substring(0, 500));
+    } catch (e: any) {
+      console.error("Erreur lors du traitement des données:", e.message);
+      console.error("Données reçues:", text.substring(0, 500));
       // Check if it's an HTML response (login page or error)
       if (text.includes('<!DOCTYPE') || text.includes('<html')) {
         throw new Error("Google renvoie une page HTML au lieu de JSON. Causes possibles:\n1. Script non déployé en 'Anyone' (Tout le monde)\n2. Nouveau déploiement requis après modification du script\n3. URL incorrecte (utilisez l'URL de déploiement Web App)");
       }
-      throw new Error(`Réponse invalide de Google: ${text.substring(0, 100)}...`);
+      throw new Error(`Erreur de traitement: ${e.message}`);
     }
   } catch (error: any) {
     console.error("Cloud fetch failed:", error);
