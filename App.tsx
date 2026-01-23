@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [filterGenre, setFilterGenre] = useState('Tous');
+  const [filterMember, setFilterMember] = useState('Tous');
   const [sortBy, setSortBy] = useState<'recent' | 'alpha'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -153,27 +154,49 @@ const App: React.FC = () => {
     }
   };
 
+  // Compteurs pour les filtres
+  const memberCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    state.books.forEach(b => {
+      const member = b.addedBy || 'Inconnu';
+      counts[member] = (counts[member] || 0) + 1;
+    });
+    return counts;
+  }, [state.books]);
+
+  const genreCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    state.books.forEach(b => {
+      const genre = b.genre || 'Autre';
+      counts[genre] = (counts[genre] || 0) + 1;
+    });
+    return counts;
+  }, [state.books]);
+
   const filteredBooks = useMemo(() => {
     let result = state.books.filter(b => {
       // Search filter
       const matchesSearch = b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         b.author.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Genre filter (including special "MES_PROPOSITIONS" filter)
-      let matchesGenre = true;
-      if (filterGenre === 'MES_PROPOSITIONS') {
-        matchesGenre = b.addedBy === currentUser;
-      } else if (filterGenre !== 'Tous') {
-        matchesGenre = b.genre === filterGenre;
+      // Genre filter
+      let matchesGenre = filterGenre === 'Tous' || b.genre === filterGenre;
+
+      // Member filter
+      let matchesMember = true;
+      if (filterMember === 'MES_PROPOSITIONS') {
+        matchesMember = b.addedBy?.trim().toLowerCase() === currentUser.trim().toLowerCase();
+      } else if (filterMember !== 'Tous') {
+        matchesMember = b.addedBy === filterMember;
       }
 
-      return matchesSearch && matchesGenre;
+      return matchesSearch && matchesGenre && matchesMember;
     });
 
     if (sortBy === 'alpha') result.sort((a, b) => a.title.localeCompare(b.title));
     else result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return result;
-  }, [state.books, searchQuery, filterGenre, sortBy, currentUser]);
+  }, [state.books, searchQuery, filterGenre, filterMember, sortBy, currentUser]);
 
   if (state.isLoading) return <div className="min-h-screen flex items-center justify-center font-serif bg-[#fcfaf7]">Initialisation...</div>;
 
@@ -235,44 +258,73 @@ const App: React.FC = () => {
             </select>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 space-y-4">
-            <input type="text" placeholder="Rechercher..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-stone-50 border border-stone-100 outline-none text-sm" />
-            <select value={filterGenre} onChange={(e) => setFilterGenre(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-stone-50 border border-stone-100 outline-none text-sm">
-              <option value="Tous">Tous les genres</option>
-              {state.genres.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-
-            {/* Sorting options */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSortBy('recent')}
-                className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${sortBy === 'recent'
-                  ? 'bg-stone-800 text-white'
-                  : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
-                  }`}
-              >
-                🕒 Récents
-              </button>
-              <button
-                onClick={() => setSortBy('alpha')}
-                className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${sortBy === 'alpha'
-                  ? 'bg-stone-800 text-white'
-                  : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
-                  }`}
-              >
-                🔤 A-Z
-              </button>
+            {/* Recherche */}
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">🔍 Recherche</label>
+              <input type="text" placeholder="Titre ou auteur..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-stone-50 border border-stone-100 outline-none text-sm focus:ring-2 focus:ring-amber-500" />
             </div>
 
-            {/* My proposals filter */}
-            <button
-              onClick={() => setFilterGenre(filterGenre === 'MES_PROPOSITIONS' ? 'Tous' : 'MES_PROPOSITIONS')}
-              className={`w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${filterGenre === 'MES_PROPOSITIONS'
-                ? 'bg-amber-600 text-white'
-                : 'bg-stone-50 border border-stone-100 text-stone-600 hover:bg-amber-50'
-                }`}
-            >
-              {filterGenre === 'MES_PROPOSITIONS' ? '✓ Mes propositions' : '📚 Mes propositions'}
-            </button>
+            {/* Filtre par genre */}
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">🏷️ Genre</label>
+              <select value={filterGenre} onChange={(e) => setFilterGenre(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-stone-50 border border-stone-100 outline-none text-sm">
+                <option value="Tous">Tous les genres ({state.books.length})</option>
+                {state.genres.map(g => <option key={g} value={g}>{g} ({genreCounts[g] || 0})</option>)}
+              </select>
+            </div>
+
+            {/* Filtre par présentateur */}
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">👤 Présenté par</label>
+              <select value={filterMember} onChange={(e) => setFilterMember(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-stone-50 border border-stone-100 outline-none text-sm">
+                <option value="Tous">Tous les membres</option>
+                <option value="MES_PROPOSITIONS">📚 Mes propositions ({memberCounts[currentUser] || 0})</option>
+                {Object.keys(memberCounts).sort().map(m => (
+                  <option key={m} value={m}>{m} ({memberCounts[m]})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tri */}
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">📊 Tri</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSortBy('recent')}
+                  className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${sortBy === 'recent'
+                    ? 'bg-stone-800 text-white'
+                    : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
+                    }`}
+                >
+                  🕒 Récents
+                </button>
+                <button
+                  onClick={() => setSortBy('alpha')}
+                  className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${sortBy === 'alpha'
+                    ? 'bg-stone-800 text-white'
+                    : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
+                    }`}
+                >
+                  🔤 A-Z
+                </button>
+              </div>
+            </div>
+
+            {/* Réinitialiser les filtres */}
+            {(filterGenre !== 'Tous' || filterMember !== 'Tous' || searchQuery) && (
+              <button
+                onClick={() => { setFilterGenre('Tous'); setFilterMember('Tous'); setSearchQuery(''); }}
+                className="w-full px-4 py-2 rounded-xl text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 transition-colors"
+              >
+                ✕ Réinitialiser les filtres
+              </button>
+            )}
+
+            {/* Résumé des résultats */}
+            <div className="pt-3 border-t border-stone-100 text-center">
+              <p className="text-sm font-bold text-stone-700">{filteredBooks.length} livre{filteredBooks.length > 1 ? 's' : ''}</p>
+              <p className="text-[10px] text-stone-400">sur {state.books.length} au total</p>
+            </div>
           </div>
         </aside>
 
