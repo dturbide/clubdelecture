@@ -2,10 +2,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Sentiment, AIAnalysis } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize lazily to avoid startup crashes if env is missing
+const getAI = () => {
+  const key = process.env.API_KEY || (window as any).GEMINI_API_KEY;
+  if (!key) {
+    console.warn("API Key missing for Gemini");
+    throw new Error("Clé API manquante");
+  }
+  return new GoogleGenAI({ apiKey: key });
+};
 
 export const analyzeReview = async (title: string, author: string, content: string): Promise<AIAnalysis> => {
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Analyse cet avis de livre pour "${title}" de ${author}.
@@ -23,7 +32,7 @@ export const analyzeReview = async (title: string, author: string, content: stri
           properties: {
             summary: { type: Type.STRING },
             sentiment: { type: Type.STRING },
-            tags: { 
+            tags: {
               type: Type.ARRAY,
               items: { type: Type.STRING }
             },
@@ -38,7 +47,7 @@ export const analyzeReview = async (title: string, author: string, content: stri
     });
 
     const data = JSON.parse(response.text || '{}');
-    
+
     let sentiment: Sentiment = Sentiment.UNKNOWN;
     if (data.sentiment === 'Enthousiaste') sentiment = Sentiment.ENTHUSIASTIC;
     else if (data.sentiment === 'Mitigé') sentiment = Sentiment.MIXED;
@@ -64,8 +73,9 @@ export const analyzeReview = async (title: string, author: string, content: stri
 /**
  * Recherche une URL d'image de couverture et un résumé de livre
  */
-export const searchBookCover = async (title: string, author: string): Promise<{url: string | null, summary: string | null}> => {
+export const searchBookCover = async (title: string, author: string): Promise<{ url: string | null, summary: string | null }> => {
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Recherche pour le livre "${title}" de ${author}. 
