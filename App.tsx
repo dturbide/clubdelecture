@@ -606,6 +606,10 @@ const App: React.FC = () => {
                   </div>
                 </section>
 
+                {/* 
+                  ========== SECTION CACHÉE - IMPORT CSV ==========
+                  Décommenter si besoin de réactiver l'import CSV
+                
                 <section className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="font-bold text-stone-800">1. Coller vos données (CSV ou Excel)</h3>
@@ -619,6 +623,9 @@ const App: React.FC = () => {
                   />
                 </section>
 
+                ========== SECTION CACHÉE - GOOGLE SHEETS CONFIG ==========
+                Décommenter si besoin de réactiver la configuration Google Sheets
+                
                 <section className="bg-purple-50 p-6 rounded-2xl border border-purple-100 space-y-4">
                   <h3 className="font-bold text-purple-900 flex items-center gap-2">
                     ☁️ Synchronisation Google Sheets
@@ -690,6 +697,7 @@ const App: React.FC = () => {
                     </button>
                   </div>
                 </section>
+                */}
 
                 {importPreview.length > 0 && (
                   <section className="space-y-4 animate-in fade-in slide-in-from-top-2">
