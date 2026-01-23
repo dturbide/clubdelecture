@@ -112,17 +112,18 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
       console.log("Raw books after cleaning:", rawBooks[0]); // Inspect first book
 
       // Map French headers (or English fallbacks) back to internal structure
+      // IMPORTANT: Use String() to coerce values - Google Sheets may store "1984" as a number!
       const books = rawBooks.map((b: any) => ({
-        id: b.id || b["id"] || `book-${Date.now()}-${Math.random()}`,
-        createdAt: b["Horodatage"] || b.createdAt || new Date().toISOString(),
-        addedBy: b["Présenté.e par"] || b.addedBy || "Inconnu",
-        title: b["Titre du livre"] || b.title || "Sans titre",
-        genre: b["Genre littéraire"] || b.genre || "Roman",
-        author: b["Auteur"] || b.author || "Inconnu",
-        summary: b["Résumé"] || b.summary || "",
-        coverUrl: b.coverUrl || "",
-        recommendations: b.recommendations || "",
-        personalRating: b.personalRating || 5
+        id: String(b.id || b["id"] || `book-${Date.now()}-${Math.random()}`),
+        createdAt: String(b["Horodatage"] || b.createdAt || new Date().toISOString()),
+        addedBy: String(b["Présenté.e par"] || b.addedBy || "Inconnu"),
+        title: String(b["Titre du livre"] || b.title || "Sans titre"),
+        genre: String(b["Genre littéraire"] || b.genre || "Roman"),
+        author: String(b["Auteur"] || b.author || "Inconnu"),
+        summary: String(b["Résumé"] || b.summary || ""),
+        coverUrl: String(b.coverUrl || ""),
+        recommendations: String(b.recommendations || ""),
+        personalRating: Number(b.personalRating) || 5
       }));
 
       console.log("Mapped books sample:", books[0]);
