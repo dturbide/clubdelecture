@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [filterGenre, setFilterGenre] = useState('Tous');
   const [filterMember, setFilterMember] = useState('Tous');
+  const [filterYear, setFilterYear] = useState('Tous');
   const [sortBy, setSortBy] = useState<'recent' | 'alpha'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -173,6 +174,19 @@ const App: React.FC = () => {
     return counts;
   }, [state.books]);
 
+  const yearCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    state.books.forEach(b => {
+      const year = b.createdAt ? new Date(b.createdAt).getFullYear().toString() : 'Inconnu';
+      counts[year] = (counts[year] || 0) + 1;
+    });
+    return counts;
+  }, [state.books]);
+
+  const availableYears = useMemo(() => {
+    return Object.keys(yearCounts).sort((a, b) => b.localeCompare(a));
+  }, [yearCounts]);
+
   const filteredBooks = useMemo(() => {
     let result = state.books.filter(b => {
       // Search filter
@@ -190,13 +204,20 @@ const App: React.FC = () => {
         matchesMember = b.addedBy === filterMember;
       }
 
-      return matchesSearch && matchesGenre && matchesMember;
+      // Year filter
+      let matchesYear = true;
+      if (filterYear !== 'Tous') {
+        const bookYear = b.createdAt ? new Date(b.createdAt).getFullYear().toString() : 'Inconnu';
+        matchesYear = bookYear === filterYear;
+      }
+
+      return matchesSearch && matchesGenre && matchesMember && matchesYear;
     });
 
     if (sortBy === 'alpha') result.sort((a, b) => a.title.localeCompare(b.title));
     else result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return result;
-  }, [state.books, searchQuery, filterGenre, filterMember, sortBy, currentUser]);
+  }, [state.books, searchQuery, filterGenre, filterMember, filterYear, sortBy, currentUser]);
 
   if (state.isLoading) return <div className="min-h-screen flex items-center justify-center font-serif bg-[#fcfaf7]">Initialisation...</div>;
 
@@ -285,6 +306,17 @@ const App: React.FC = () => {
               </select>
             </div>
 
+            {/* Filtre par année */}
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">📅 Année</label>
+              <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-stone-50 border border-stone-100 outline-none text-sm">
+                <option value="Tous">Toutes les années</option>
+                {availableYears.map(y => (
+                  <option key={y} value={y}>{y} ({yearCounts[y]})</option>
+                ))}
+              </select>
+            </div>
+
             {/* Tri */}
             <div>
               <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">📊 Tri</label>
@@ -311,9 +343,9 @@ const App: React.FC = () => {
             </div>
 
             {/* Réinitialiser les filtres */}
-            {(filterGenre !== 'Tous' || filterMember !== 'Tous' || searchQuery) && (
+            {(filterGenre !== 'Tous' || filterMember !== 'Tous' || filterYear !== 'Tous' || searchQuery) && (
               <button
-                onClick={() => { setFilterGenre('Tous'); setFilterMember('Tous'); setSearchQuery(''); }}
+                onClick={() => { setFilterGenre('Tous'); setFilterMember('Tous'); setFilterYear('Tous'); setSearchQuery(''); }}
                 className="w-full px-4 py-2 rounded-xl text-xs font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 transition-colors"
               >
                 ✕ Réinitialiser les filtres
