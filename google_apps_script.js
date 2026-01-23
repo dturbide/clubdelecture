@@ -1,0 +1,139 @@
+function doGet() {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const lock = LockService.getScriptLock();
+    lock.tryLock(10000);
+
+    try {
+        const data = {
+            books: getSheetData(ss, "Books"),
+            reviews: getSheetData(ss, "Reviews"),
+            genres: getSimpleList(ss, "Genres"),
+            members: getSimpleList(ss, "Members")
+        };
+
+        return ContentService.createTextOutput(JSON.stringify(data))
+            .setMimeType(ContentService.MimeType.JSON);
+
+    } catch (e) {
+        return ContentService.createTextOutput(JSON.stringify({ error: e.toString() }))
+            .setMimeType(ContentService.MimeType.JSON);
+    } finally {
+        lock.releaseLock();
+    }
+}
+
+function doPost(e) {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const lock = LockService.getScriptLock();
+    lock.tryLock(10000);
+
+    try {
+        const content = e.postData.contents;
+        const data = JSON.parse(content);
+
+        // Save Books
+        if (data.books) saveSheetData(ss, "Books", data.books);
+
+        // Save Reviews
+        if (data.reviews) saveSheetData(ss, "Reviews", data.reviews);
+
+        // Save Genres
+        if (data.genres) saveSimpleList(ss, "Genres", data.genres);
+
+        // Save Members
+        if (data.members) saveSimpleList(ss, "Members", data.members);
+
+        return ContentService.createTextOutput(JSON.stringify({ success: true }))
+            .setMimeType(ContentService.MimeType.JSON);
+
+    } catch (e) {
+        return ContentService.createTextOutput(JSON.stringify({ success: false, error: e.toString() }))
+            .setMimeType(ContentService.MimeType.JSON);
+    } finally {
+        lock.releaseLock();
+    }
+}
+
+// Helper to read array of objects from sheet
+function getSheetData(ss, sheetName) {
+    let sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return [];
+
+    const rows = sheet.getDataRange().getValues();
+    if (rows.length < 2) return [];
+
+    const headers = rows[0];
+    const data = rows.slice(1).map(row => {
+        let obj = {};
+        headers.forEach((header, i) => {
+            // Handle potential JSON strings in cells (like aiAnalysis)
+            let value = row[i];
+            if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+                try { value = JSON.parse(value); } catch (e) { }
+            }
+            obj[header] = value;
+        });
+        return obj;
+    });
+
+    return data;
+}
+
+// Helper to save array of objects to sheet
+function saveSheetData(ss, sheetName, data) {
+    if (!data || data.length === 0) return;
+
+    let sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+        sheet = ss.insertSheet(sheetName);
+    } else {
+        sheet.clear();
+    }
+
+    const headers = Object.keys(data[0]);
+
+    // Write Headers
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+    // Write Rows
+    const rows = data.map(item => {
+        return headers.map(header => {
+            const val = item[header];
+            // Stringify objects if needed
+            return (typeof val === 'object' && val !== null) ? JSON.stringify(val) : val;
+        });
+    });
+
+    if (rows.length > 0) {
+        sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+    }
+}
+
+// Helper for simple lists (Genres, Members) which are just strings
+function getSimpleList(ss, sheetName) {
+    let sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return [];
+    const vals = sheet.getDataRange().getValues();
+    // Assume generic list in first column
+    return vals.flat().filter(x => x !== "");
+}
+
+function saveSimpleList(ss, sheetName, list) {
+    if (!list || list.length === 0) return;
+    let sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+        sheet = ss.insertSheet(sheetName);
+    } else {
+        sheet.clear();
+    }
+    // Write as column
+    const rows = list.map(x => [x]);
+    sheet.getRange(1, 1, rows.length, 1).setValues(rows);
+}
+
+function setup() {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    ["Books", "Reviews", "Genres", "Members"].forEach(name => {
+        if (!ss.getSheetByName(name)) ss.insertSheet(name);
+    });
+}

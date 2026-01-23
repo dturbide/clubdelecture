@@ -74,33 +74,48 @@ export const saveAllData = (data: { books: Book[], reviews: Review[], genres: st
   saveLocalMembers(data.members || []);
 };
 
-export const fetchFromCloud = async (url: string): Promise<{books: Book[], reviews: Review[]} | null> => {
+// Google Apps Script requires specific handling:
+// 1. POST requests should use text/plain to avoid CORS preflight options request which GAS doesn't handle well.
+// 2. GET requests might follow redirects.
+
+export const fetchFromCloud = async (url: string): Promise<{ books: Book[], reviews: Review[], genres: string[], members: string[] } | null> => {
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error("Erreur réseau");
     const data = await response.json();
-    
-    const reviews = data.reviews.map((r: any) => ({
+
+    // Parse nested JSON if needed (though the script tries to handle it)
+    const reviews = (data.reviews || []).map((r: any) => ({
       ...r,
       aiAnalysis: typeof r.aiAnalysis === 'string' ? JSON.parse(r.aiAnalysis) : r.aiAnalysis
     }));
 
-    return { books: data.books, reviews };
+    return {
+      books: data.books || [],
+      reviews,
+      genres: data.genres || [],
+      members: data.members || []
+    };
   } catch (error) {
     console.error("Cloud fetch failed:", error);
     return null;
   }
 };
 
-export const syncWithCloud = async (url: string, data: { books: Book[], reviews: Review[] }) => {
+export const syncWithCloud = async (url: string, data: { books: Book[], reviews: Review[], genres: string[], members: string[] }) => {
   try {
+    // We use text/plain to avoid CORS preflight (OPTIONS) which often fails with GAS
     const response = await fetch(url, {
       method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
     });
-    return { success: true };
+
+    // Validating response from GAS Web App
+    const result = await response.json();
+    return { success: result.success !== false };
   } catch (error) {
     console.error("Cloud sync failed:", error);
     return { success: false };

@@ -15,7 +15,7 @@ const App: React.FC = () => {
     reviews: [],
     genres: [],
     members: [],
-    scriptUrl: null,
+    scriptUrl: "https://script.google.com/macros/s/AKfycbwNFy87Mt__t5syGUAG-lo9Aap6-nLk8AEH9jBP-3PB3JntrC1fzDJ_rkAc5_SlkBlEDg/exec",
     isLoading: true
   });
 
@@ -26,14 +26,14 @@ const App: React.FC = () => {
   const [filterGenre, setFilterGenre] = useState('Tous');
   const [sortBy, setSortBy] = useState<'recent' | 'alpha'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  
+
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [csvPasteContent, setCsvPasteContent] = useState('');
   const [importPreview, setImportPreview] = useState<Book[]>([]);
 
-  const [bookForm, setBookForm] = useState({ 
-    title: '', author: '', genre: '', coverUrl: '', summary: '', recommendations: '', personalRating: 5, addedBy: '' 
+  const [bookForm, setBookForm] = useState({
+    title: '', author: '', genre: '', coverUrl: '', summary: '', recommendations: '', personalRating: 5, addedBy: ''
   });
 
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -45,8 +45,9 @@ const App: React.FC = () => {
         let reviews = storage.getLocalReviews();
         let genres = storage.getLocalGenres();
         let members = storage.getLocalMembers();
+        const scriptUrl = storage.getConfig() || "https://script.google.com/macros/s/AKfycbwNFy87Mt__t5syGUAG-lo9Aap6-nLk8AEH9jBP-3PB3JntrC1fzDJ_rkAc5_SlkBlEDg/exec";
         if (books.length === 0) books = storage.MOCK_BOOKS;
-        setState({ books, reviews, genres, members, scriptUrl: null, isLoading: false });
+        setState({ books, reviews, genres, members, scriptUrl, isLoading: false });
       };
       init();
     } catch (e) {
@@ -73,12 +74,12 @@ const App: React.FC = () => {
 
       const headerLine = lines[0];
       const separators = ['\t', ';', ','];
-      const delimiter = separators.reduce((prev, curr) => 
+      const delimiter = separators.reduce((prev, curr) =>
         (headerLine.split(curr).length > headerLine.split(prev).length) ? curr : prev
       );
 
       const headers = headerLine.split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
-      
+
       const findCol = (keys: string[]) => {
         const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
         const targetKeys = keys.map(norm);
@@ -136,7 +137,7 @@ const App: React.FC = () => {
   };
 
   const filteredBooks = useMemo(() => {
-    let result = state.books.filter(b => 
+    let result = state.books.filter(b =>
       (b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.author.toLowerCase().includes(searchQuery.toLowerCase())) &&
       (filterGenre === 'Tous' || b.genre === filterGenre)
     );
@@ -155,26 +156,26 @@ const App: React.FC = () => {
           <p className="text-stone-500 text-sm">Votre espace de lecture partagé</p>
         </div>
         <div className="flex gap-2">
-           <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold">
-             {viewMode === 'grid' ? '📄 Liste' : '🔲 Grille'}
-           </button>
-           <button onClick={() => setIsAdminOpen(true)} className="px-5 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-amber-700 transition-colors">⚙️ ADMINISTRATION</button>
+          <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold">
+            {viewMode === 'grid' ? '📄 Liste' : '🔲 Grille'}
+          </button>
+          <button onClick={() => setIsAdminOpen(true)} className="px-5 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-amber-700 transition-colors">⚙️ ADMINISTRATION</button>
         </div>
       </header>
 
       <main className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <aside className="space-y-6">
           <div className="bg-stone-900 text-white p-6 rounded-2xl shadow-xl">
-             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">Membre Actif</label>
-             <select value={currentUser} onChange={(e) => setCurrentUser(e.target.value)} className="w-full bg-stone-800 border-none rounded-xl py-2.5 px-3 text-sm outline-none">
-               {state.members.map(m => <option key={m} value={m}>{m}</option>)}
-             </select>
+            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">Membre Actif</label>
+            <select value={currentUser} onChange={(e) => setCurrentUser(e.target.value)} className="w-full bg-stone-800 border-none rounded-xl py-2.5 px-3 text-sm outline-none">
+              {state.members.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 space-y-4">
             <input type="text" placeholder="Rechercher..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-stone-50 border border-stone-100 outline-none text-sm" />
             <select value={filterGenre} onChange={(e) => setFilterGenre(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-stone-50 border border-stone-100 outline-none text-sm">
-               <option value="Tous">Tous les genres</option>
-               {state.genres.map(g => <option key={g} value={g}>{g}</option>)}
+              <option value="Tous">Tous les genres</option>
+              {state.genres.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
         </aside>
@@ -204,9 +205,9 @@ const App: React.FC = () => {
           ) : (
             <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filteredBooks.map(book => (
-                viewMode === 'grid' ? 
-                <BookCard key={book.id} book={book} currentUser={currentUser} reviews={state.reviews} onClick={setSelectedBook} onEdit={(b) => { setEditingBook(b); setBookForm(b); setIsAddBookOpen(true); }} /> :
-                <BookRow key={book.id} book={book} currentUser={currentUser} reviews={state.reviews} onClick={setSelectedBook} onEdit={(b) => { setEditingBook(b); setBookForm(b); setIsAddBookOpen(true); }} />
+                viewMode === 'grid' ?
+                  <BookCard key={book.id} book={book} currentUser={currentUser} reviews={state.reviews} onClick={setSelectedBook} onEdit={(b) => { setEditingBook(b); setBookForm(b); setIsAddBookOpen(true); }} /> :
+                  <BookRow key={book.id} book={book} currentUser={currentUser} reviews={state.reviews} onClick={setSelectedBook} onEdit={(b) => { setEditingBook(b); setBookForm(b); setIsAddBookOpen(true); }} />
               ))}
               {filteredBooks.length === 0 && (
                 <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-stone-200">
@@ -238,8 +239,8 @@ const App: React.FC = () => {
 
             <div className="flex-grow overflow-y-auto space-y-8 pr-2">
               <section className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-center justify-between">
-                 <p className="text-blue-700 text-sm font-medium">Vérifiez si le système répond correctement :</p>
-                 <button onClick={testSystem} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-sm hover:bg-blue-700 transition-colors">🚀 TESTER LE SYSTÈME</button>
+                <p className="text-blue-700 text-sm font-medium">Vérifiez si le système répond correctement :</p>
+                <button onClick={testSystem} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-sm hover:bg-blue-700 transition-colors">🚀 TESTER LE SYSTÈME</button>
               </section>
 
               <section className="space-y-4">
@@ -247,12 +248,74 @@ const App: React.FC = () => {
                   <h3 className="font-bold text-stone-800">1. Coller vos données (CSV ou Excel)</h3>
                   <button onClick={() => { storage.saveLocalBooks([]); setState(prev => ({ ...prev, books: [] })); alert("Bibliothèque vidée."); }} className="text-[10px] font-bold text-red-500 hover:underline">VIDER TOUT</button>
                 </div>
-                <textarea 
+                <textarea
                   value={csvPasteContent}
                   onChange={(e) => parseAndPreview(e.target.value)}
                   placeholder="Exemple: Titre;Auteur;Genre&#10;L'étranger;Albert Camus;Roman"
                   className="w-full h-40 p-4 text-xs font-mono bg-stone-50 border border-stone-200 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500"
                 />
+              </section>
+
+              <section className="bg-purple-50 p-6 rounded-2xl border border-purple-100 space-y-4">
+                <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                  ☁️ Synchronisation Google Sheets
+                </h3>
+                <p className="text-purple-700 text-xs text-justify leading-relaxed">
+                  Pour activer la sauvegarde en ligne :
+                  <br />1. Créez un Google Sheet et allez dans Extensions {'>'} Apps Script.
+                  <br />2. Collez le code fourni (google_apps_script.js).
+                  <br />3. Déployez en tant qu'application Web (Accès: "Anyone").
+                  <br />4. Collez l'URL ici :
+                </p>
+
+                <input
+                  type="text"
+                  placeholder="https://script.google.com/macros/s/..."
+                  value={state.scriptUrl || ''}
+                  onChange={(e) => {
+                    const url = e.target.value;
+                    setState(prev => ({ ...prev, scriptUrl: url }));
+                    storage.saveConfig(url);
+                  }}
+                  className="w-full px-4 py-3 rounded-xl border border-purple-200 bg-white text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                />
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!state.scriptUrl) return alert("Veuillez entrer une URL valide.");
+                      const result = await storage.fetchFromCloud(state.scriptUrl);
+                      if (result) {
+                        if (confirm(`Trouvé : ${result.books.length} livres, ${result.reviews.length} avis. Remplacer les données locales ?`)) {
+                          setState(prev => ({ ...prev, ...result }));
+                          storage.saveAllData(result);
+                          alert("Données chargées avec succès !");
+                        }
+                      } else {
+                        alert("Échec du chargement. Vérifiez l'URL et le déploiement.");
+                      }
+                    }}
+                    className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold text-xs shadow-md hover:bg-purple-700 transition-colors"
+                  >
+                    ⬇️ CHARGER DU CLOUD
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!state.scriptUrl) return alert("Veuillez entrer une URL valide.");
+                      const success = await storage.syncWithCloud(state.scriptUrl, {
+                        books: state.books,
+                        reviews: state.reviews,
+                        genres: state.genres,
+                        members: state.members
+                      });
+                      if (success.success) alert("Sauvegarde réussie !");
+                      else alert("Erreur lors de la sauvegarde.");
+                    }}
+                    className="flex-1 py-3 bg-white text-purple-600 border border-purple-200 rounded-xl font-bold text-xs shadow-sm hover:bg-purple-50 transition-colors"
+                  >
+                    ⬆️ ENVOYER VERS CLOUD
+                  </button>
+                </div>
               </section>
 
               {importPreview.length > 0 && (
@@ -282,7 +345,7 @@ const App: React.FC = () => {
                     </table>
                     {importPreview.length > 5 && <p className="p-2 text-center text-[10px] text-stone-400 font-bold">... + {importPreview.length - 5} autres lignes</p>}
                   </div>
-                  <button 
+                  <button
                     onClick={finalizeImport}
                     className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold shadow-lg hover:bg-green-700 transition-colors transform active:scale-95"
                   >
@@ -317,16 +380,23 @@ const App: React.FC = () => {
               setEditingBook(null);
             }} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <input required type="text" placeholder="Titre" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.title} onChange={e => setBookForm({...bookForm, title: e.target.value})} />
-                <input required type="text" placeholder="Auteur" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.author} onChange={e => setBookForm({...bookForm, author: e.target.value})} />
+                <input required type="text" placeholder="Titre" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} />
+                <input required type="text" placeholder="Auteur" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} />
               </div>
-              <select className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white" value={bookForm.genre} onChange={e => setBookForm({...bookForm, genre: e.target.value})}>
+              <select className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white" value={bookForm.genre} onChange={e => setBookForm({ ...bookForm, genre: e.target.value })}>
                 {state.genres.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
-              <textarea placeholder="Résumé" className="w-full px-4 py-3 rounded-xl border border-stone-200 h-32 outline-none focus:ring-2 focus:ring-amber-500" value={bookForm.summary} onChange={e => setBookForm({...bookForm, summary: e.target.value})} />
+              <textarea placeholder="Résumé" className="w-full px-4 py-3 rounded-xl border border-stone-200 h-32 outline-none focus:ring-2 focus:ring-amber-500" value={bookForm.summary} onChange={e => setBookForm({ ...bookForm, summary: e.target.value })} />
               <button type="submit" className="w-full py-4 bg-amber-600 text-white rounded-2xl font-bold shadow-xl hover:bg-amber-700 transition-colors">
                 {editingBook ? 'Mettre à jour' : 'Ajouter au club'}
               </button>
               <button type="button" onClick={() => { setIsAddBookOpen(false); setEditingBook(null); }} className="w-full py-2 text-stone-400 text-sm font-medium">Annuler</button>
             </form>
-          
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;

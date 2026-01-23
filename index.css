@@ -1,0 +1,21 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #fcfaf7;
+}
+.font-serif {
+    font-family: 'Lora', serif;
+}
+/* Custom scrollbar for a cleaner look */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
