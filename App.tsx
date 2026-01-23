@@ -500,10 +500,10 @@ const App: React.FC = () => {
                 alert("Erreur: " + e.message);
               }
             }}
-            className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold hover:bg-purple-50 transition-colors"
+            className="px-4 py-2.5 bg-purple-600 text-white rounded-xl shadow-md border border-purple-700 text-sm font-bold hover:bg-purple-700 transition-colors flex items-center gap-2"
             title="Actualiser depuis Google Sheets"
           >
-            🔄
+            🔄 <span className="hidden sm:inline">Actualiser</span>
           </button>
           <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold">
             {viewMode === 'grid' ? '📄 Liste' : '🔲 Grille'}
