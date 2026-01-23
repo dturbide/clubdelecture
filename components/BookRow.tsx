@@ -47,7 +47,13 @@ const BookRow: React.FC<BookRowProps> = ({ book, currentUser, reviews, onClick, 
             <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Proposé par</span>
             <p className="text-xs font-medium text-amber-700">{book.addedBy}</p>
           </div>
-          <div className="flex items-center justify-between md:justify-end gap-6 text-center">
+          <div className="flex items-center justify-between md:justify-end gap-4 text-center">
+            <div>
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Note</span>
+              <div className="text-amber-500 text-sm">
+                {"★".repeat(book.personalRating || 0)}{"☆".repeat(5 - (book.personalRating || 0))}
+              </div>
+            </div>
             <div>
               <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Avis</span>
               <div className="bg-stone-50 px-2 py-1 rounded-lg text-sm font-bold">⭐ {avgRating}</div>

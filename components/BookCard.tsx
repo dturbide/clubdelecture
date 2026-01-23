@@ -57,9 +57,16 @@ const BookCard: React.FC<BookCardProps> = ({ book, currentUser, reviews, onClick
             <h3 className="font-serif text-lg font-bold text-stone-800 leading-tight mb-1">{book.title}</h3>
             <p className="text-sm text-stone-500 italic">{book.author}</p>
           </div>
-          <div className="pt-3 border-t border-stone-50 flex justify-between items-center">
-            <p className="text-[9px] text-stone-400 italic">Par {book.addedBy}</p>
-            <p className="text-[9px] text-stone-400">{bookReviews.length} avis</p>
+          <div className="pt-3 border-t border-stone-50">
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-[9px] text-stone-400 italic">Par {book.addedBy}</p>
+              <p className="text-[9px] text-stone-400">{bookReviews.length} avis</p>
+            </div>
+            <div className="flex justify-center">
+              <span className="text-amber-500 text-sm">
+                {"★".repeat(book.personalRating || 0)}{"☆".repeat(5 - (book.personalRating || 0))}
+              </span>
+            </div>
           </div>
         </div>
       </div>
