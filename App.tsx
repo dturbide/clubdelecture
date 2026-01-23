@@ -174,6 +174,27 @@ const App: React.FC = () => {
         let genres = storage.getLocalGenres();
         let members = storage.getLocalMembers();
         const scriptUrl = storage.getConfig() || "https://script.google.com/macros/s/AKfycbw8sfAt4FbspEoSuteXbBkZ8F-XdY-1ac6NJBGAo8UCLReSY2uTWWawrhgGGPDE4x2C/exec";
+        
+        // Si localStorage vide, charger automatiquement depuis Google Sheets
+        if (books.length === 0 && scriptUrl) {
+          console.log("📥 localStorage vide, chargement depuis Google Sheets...");
+          try {
+            const cloudData = await storage.fetchFromCloud(scriptUrl);
+            if (cloudData && cloudData.books.length > 0) {
+              books = cloudData.books;
+              reviews = cloudData.reviews;
+              genres = cloudData.genres.length > 0 ? cloudData.genres : genres;
+              members = cloudData.members.length > 0 ? cloudData.members : members;
+              // Sauvegarder localement pour les prochains chargements
+              storage.saveAllData({ books, reviews, genres, members });
+              console.log(`✅ ${books.length} livres chargés depuis Google Sheets`);
+            }
+          } catch (e) {
+            console.warn("Impossible de charger depuis Google Sheets:", e);
+          }
+        }
+        
+        // Fallback vers MOCK_BOOKS seulement si toujours vide
         if (books.length === 0) books = storage.MOCK_BOOKS;
         // Ensure members has at least default values
         if (members.length === 0) members = ['Admin', 'Visiteur'];
