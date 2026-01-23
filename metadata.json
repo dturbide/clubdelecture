@@ -1,0 +1,7 @@
+{
+  "name": "Livres et tes pensées",
+  "description": "Un hub littéraire intelligent pour clubs de lecture, avec analyse d'avis par IA, synchronisation cloud et gestion collaborative des lectures.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
