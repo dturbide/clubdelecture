@@ -708,7 +708,7 @@ const App: React.FC = () => {
               if (editingBook) {
                 updatedBooks = state.books.map(b => b.id === editingBook.id ? { ...b, ...bookForm } : b);
               } else {
-                const newBook: Book = { ...bookForm, id: Date.now().toString(), createdAt: new Date().toISOString(), addedBy: currentUser };
+                const newBook: Book = { ...bookForm, id: Date.now().toString(), createdAt: new Date().toISOString() };
                 updatedBooks = [...state.books, newBook];
               }
               setState(prev => ({ ...prev, books: updatedBooks }));
@@ -725,10 +725,37 @@ const App: React.FC = () => {
                 <input required type="text" placeholder="Titre" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} />
                 <input required type="text" placeholder="Auteur" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} />
               </div>
-              <select className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white" value={bookForm.genre} onChange={e => setBookForm({ ...bookForm, genre: e.target.value })}>
-                {state.genres.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-              <textarea placeholder="Résumé" className="w-full px-4 py-3 rounded-xl border border-stone-200 h-32 outline-none focus:ring-2 focus:ring-amber-500" value={bookForm.summary} onChange={e => setBookForm({ ...bookForm, summary: e.target.value })} />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Genre</label>
+                  <select className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white" value={bookForm.genre} onChange={e => setBookForm({ ...bookForm, genre: e.target.value })}>
+                    {state.genres.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">👤 Présenté par</label>
+                  <select className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white" value={bookForm.addedBy} onChange={e => setBookForm({ ...bookForm, addedBy: e.target.value })}>
+                    {state.members.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">⭐ Évaluation personnelle</label>
+                <div className="flex gap-2 justify-center">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setBookForm({ ...bookForm, personalRating: star })}
+                      className={`text-3xl transition-transform hover:scale-125 ${star <= bookForm.personalRating ? 'text-amber-400' : 'text-stone-200'}`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <p className="text-center text-xs text-stone-400 mt-1">{bookForm.personalRating}/5 étoiles</p>
+              </div>
+              <textarea placeholder="Résumé" className="w-full px-4 py-3 rounded-xl border border-stone-200 h-24 outline-none focus:ring-2 focus:ring-amber-500" value={bookForm.summary} onChange={e => setBookForm({ ...bookForm, summary: e.target.value })} />
               <button type="submit" className="w-full py-4 bg-amber-600 text-white rounded-2xl font-bold shadow-xl hover:bg-amber-700 transition-colors">
                 {editingBook ? 'Mettre à jour' : 'Ajouter au club'}
               </button>
