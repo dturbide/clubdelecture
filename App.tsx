@@ -211,6 +211,30 @@ const App: React.FC = () => {
               <option value="Tous">Tous les genres</option>
               {state.genres.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
+
+            {/* Sorting options */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSortBy('recent')}
+                className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${sortBy === 'recent'
+                    ? 'bg-stone-800 text-white'
+                    : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
+                  }`}
+              >
+                🕒 Récents
+              </button>
+              <button
+                onClick={() => setSortBy('alpha')}
+                className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${sortBy === 'alpha'
+                    ? 'bg-stone-800 text-white'
+                    : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
+                  }`}
+              >
+                🔤 A-Z
+              </button>
+            </div>
+
+            {/* My proposals filter */}
             <button
               onClick={() => setFilterGenre(filterGenre === 'MES_PROPOSITIONS' ? 'Tous' : 'MES_PROPOSITIONS')}
               className={`w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${filterGenre === 'MES_PROPOSITIONS'
