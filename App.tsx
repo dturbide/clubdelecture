@@ -210,6 +210,47 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Rafraîchir automatiquement quand l'utilisateur revient sur l'onglet
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && state.scriptUrl && !state.isLoading) {
+        console.log("👁️ Onglet actif - Vérification des mises à jour...");
+        try {
+          const cloudData = await storage.fetchFromCloud(state.scriptUrl);
+          if (cloudData && cloudData.books.length > 0) {
+            // Vérifier si les données ont changé (comparaison simple par nombre)
+            const hasChanges = cloudData.books.length !== state.books.length ||
+              cloudData.reviews.length !== state.reviews.length;
+            
+            if (hasChanges) {
+              console.log("🔄 Nouvelles données détectées, mise à jour...");
+              setState(prev => ({
+                ...prev,
+                books: cloudData.books,
+                reviews: cloudData.reviews,
+                genres: cloudData.genres.length > 0 ? cloudData.genres : prev.genres,
+                members: cloudData.members.length > 0 ? cloudData.members : prev.members
+              }));
+              storage.saveAllData({
+                books: cloudData.books,
+                reviews: cloudData.reviews,
+                genres: cloudData.genres,
+                members: cloudData.members
+              });
+            } else {
+              console.log("✅ Données déjà à jour");
+            }
+          }
+        } catch (e) {
+          console.warn("Impossible de vérifier les mises à jour:", e);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [state.scriptUrl, state.books.length, state.reviews.length, state.isLoading]);
+
   // Fonction de test pour vérifier si JS tourne
   const testSystem = () => {
     alert("✅ Le système JavaScript fonctionne correctement.\nSi l'importation ne marche pas, le problème vient du format de vos données.");
