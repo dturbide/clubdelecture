@@ -115,17 +115,24 @@ function getSimpleList(ss, sheetName) {
     if (!sheet) return [];
     const vals = sheet.getDataRange().getValues();
     // Assume generic list in first column
-    return vals.flat().filter(x => x !== "");
+    // Filter out empty lines AND lines that might be headers (same as sheet name)
+    return vals.flat().filter(x => x !== "" && x !== sheetName);
 }
 
 function saveSimpleList(ss, sheetName, list) {
-    if (!list || list.length === 0) return;
     let sheet = ss.getSheetByName(sheetName);
     if (!sheet) {
+        // If sheet doesn't exist and keys are empty, nothing to do
+        if (!list || list.length === 0) return;
         sheet = ss.insertSheet(sheetName);
     } else {
+        // Clear previous content
         sheet.clear();
     }
+
+    // If list is empty, we just cleared it, so we are done.
+    if (!list || list.length === 0) return;
+
     // Write as column
     const rows = list.map(x => [x]);
     sheet.getRange(1, 1, rows.length, 1).setValues(rows);
