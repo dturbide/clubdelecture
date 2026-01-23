@@ -72,7 +72,7 @@ const App: React.FC = () => {
 
   const csvInputRef = useRef<HTMLInputElement>(null);
 
-  // Fonction pour chercher les couvertures de livres via Open Library
+  // Fonction avancée pour chercher les couvertures (plusieurs sources)
   const searchBookCover = async () => {
     if (!bookForm.title && !bookForm.author) {
       alert("Entrez un titre ou un auteur pour chercher une couverture.");
@@ -80,24 +80,84 @@ const App: React.FC = () => {
     }
     setIsSearchingCover(true);
     setCoverResults([]);
+    
+    const allCovers: string[] = [];
+    const title = bookForm.title.trim();
+    const author = bookForm.author.trim();
+    
     try {
-      const query = encodeURIComponent(`${bookForm.title} ${bookForm.author}`.trim());
-      const response = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=6`);
-      const data = await response.json();
-      
-      if (data.docs && data.docs.length > 0) {
-        const covers = data.docs
-          .filter((doc: any) => doc.cover_i)
-          .slice(0, 6)
-          .map((doc: any) => `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`);
-        
-        if (covers.length > 0) {
-          setCoverResults(covers);
-        } else {
-          alert("Aucune couverture trouvée pour ce livre.");
+      // Stratégie 1: Open Library - recherche exacte
+      try {
+        const query1 = encodeURIComponent(`${title} ${author}`);
+        const res1 = await fetch(`https://openlibrary.org/search.json?q=${query1}&limit=6`);
+        const data1 = await res1.json();
+        if (data1.docs) {
+          data1.docs.forEach((doc: any) => {
+            if (doc.cover_i && allCovers.length < 12) {
+              allCovers.push(`https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`);
+            }
+          });
         }
+      } catch (e) { console.log("Open Library exact failed"); }
+
+      // Stratégie 2: Google Books API
+      try {
+        const query2 = encodeURIComponent(`${title} ${author}`);
+        const res2 = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query2}&maxResults=6`);
+        const data2 = await res2.json();
+        if (data2.items) {
+          data2.items.forEach((item: any) => {
+            if (item.volumeInfo?.imageLinks?.thumbnail && allCovers.length < 12) {
+              const url = item.volumeInfo.imageLinks.thumbnail
+                .replace('zoom=1', 'zoom=2')
+                .replace('http://', 'https://');
+              if (!allCovers.includes(url)) allCovers.push(url);
+            }
+          });
+        }
+      } catch (e) { console.log("Google Books failed"); }
+
+      // Stratégie 3: Open Library - titre seul
+      if (allCovers.length < 6 && title) {
+        try {
+          const cleanTitle = title.replace(/[,.:;!?()]/g, '').trim();
+          const query3 = encodeURIComponent(cleanTitle);
+          const res3 = await fetch(`https://openlibrary.org/search.json?title=${query3}&limit=6`);
+          const data3 = await res3.json();
+          if (data3.docs) {
+            data3.docs.forEach((doc: any) => {
+              if (doc.cover_i && allCovers.length < 12) {
+                const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+                if (!allCovers.includes(url)) allCovers.push(url);
+              }
+            });
+          }
+        } catch (e) { console.log("Open Library title failed"); }
+      }
+
+      // Stratégie 4: Open Library - auteur seul
+      if (allCovers.length < 6 && author) {
+        try {
+          const cleanAuthor = author.replace(/^(De |Par )/i, '').split(/[|,]/)[0].trim();
+          const query4 = encodeURIComponent(cleanAuthor);
+          const res4 = await fetch(`https://openlibrary.org/search.json?author=${query4}&limit=6`);
+          const data4 = await res4.json();
+          if (data4.docs) {
+            data4.docs.forEach((doc: any) => {
+              if (doc.cover_i && allCovers.length < 12) {
+                const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+                if (!allCovers.includes(url)) allCovers.push(url);
+              }
+            });
+          }
+        } catch (e) { console.log("Open Library author failed"); }
+      }
+
+      // Résultats
+      if (allCovers.length > 0) {
+        setCoverResults(allCovers.slice(0, 12));
       } else {
-        alert("Aucun résultat trouvé.");
+        alert("Aucune couverture trouvée. Essayez avec un titre plus simple.");
       }
     } catch (error) {
       console.error("Erreur recherche couverture:", error);
@@ -894,8 +954,8 @@ const App: React.FC = () => {
                 )}
                 {coverResults.length > 0 && (
                   <div>
-                    <p className="text-xs text-stone-500 mb-2">Sélectionnez une couverture :</p>
-                    <div className="grid grid-cols-6 gap-2">
+                    <p className="text-xs text-stone-500 mb-2">Sélectionnez une couverture ({coverResults.length} trouvées) :</p>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto">
                       {coverResults.map((url, i) => (
                         <button
                           key={i}
