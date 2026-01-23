@@ -47,6 +47,7 @@ const App: React.FC = () => {
   });
   const [isSearchingCover, setIsSearchingCover] = useState(false);
   const [coverResults, setCoverResults] = useState<string[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState<Book | null>(null);
 
   const csvInputRef = useRef<HTMLInputElement>(null);
 
@@ -848,22 +849,53 @@ const App: React.FC = () => {
               {editingBook && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (window.confirm(`Supprimer "${editingBook.title}" ? Cette action est irréversible.`)) {
-                      const updatedBooks = state.books.filter(b => b.id !== editingBook.id);
-                      setState(prev => ({ ...prev, books: updatedBooks }));
-                      storage.saveLocalBooks(updatedBooks);
-                      storage.autoSync(state.scriptUrl, { ...state, books: updatedBooks }, setSyncStatus);
-                      setIsAddBookOpen(false);
-                      setEditingBook(null);
-                    }
-                  }}
+                  onClick={() => setConfirmDelete(editingBook)}
                   className="w-full py-3 mt-4 text-red-600 bg-red-50 border border-red-200 rounded-xl text-sm font-bold hover:bg-red-100 transition-colors"
                 >
                   🗑️ Supprimer ce livre
                 </button>
               )}
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-lg z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">🗑️</span>
+            </div>
+            <h3 className="font-serif text-xl font-bold text-stone-800 mb-2">Supprimer ce livre ?</h3>
+            <p className="text-stone-600 mb-2">
+              <strong>« {confirmDelete.title} »</strong>
+            </p>
+            <p className="text-sm text-stone-500 mb-6">
+              Cette action est irréversible. Le livre sera supprimé définitivement.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-3 px-4 bg-stone-100 text-stone-700 rounded-xl font-bold hover:bg-stone-200 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  const updatedBooks = state.books.filter(b => b.id !== confirmDelete.id);
+                  setState(prev => ({ ...prev, books: updatedBooks }));
+                  storage.saveLocalBooks(updatedBooks);
+                  storage.autoSync(state.scriptUrl, { ...state, books: updatedBooks }, setSyncStatus);
+                  setConfirmDelete(null);
+                  setIsAddBookOpen(false);
+                  setEditingBook(null);
+                }}
+                className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
           </div>
         </div>
       )}
