@@ -382,28 +382,25 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {state.genres.map((g, idx) => (
-                      <span key={`${g}-${idx}`} className="relative z-10 px-3 py-1.5 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2 group hover:z-20">
-                        {g}
+                      <div key={`${g}-${idx}`} className="flex items-center gap-1 pl-3 pr-1 py-1 bg-white border border-stone-200 rounded-full text-xs font-medium">
+                        <span>{g}</span>
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.preventDefault();
-                            e.stopPropagation();
-                            console.log("Attempting to delete genre:", g);
-                            if (confirm(`Supprimer le genre "${g}" ?`)) {
-                              console.log("Confirmed delete for:", g);
-                              const updated = state.genres.filter((_, i) => i !== idx); // Remove by index
-                              console.log("New genres list:", updated);
+                            if (window.confirm(`Voulez-vous vraiment supprimer le genre "${g}" ?`)) {
+                              const updated = state.genres.filter((_, i) => i !== idx);
                               setState(prev => ({ ...prev, genres: updated }));
                               storage.saveLocalGenres(updated);
                               storage.autoSync(state.scriptUrl, { ...state, genres: updated }, setSyncStatus);
                             }
                           }}
-                          className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                          className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-stone-50 rounded-full transition-colors cursor-pointer"
                           title={`Supprimer ${g}`}
                         >
                           ✕
                         </button>
-                      </span>
+                      </div>
                     ))}
                   </div>
                 </section>
@@ -433,28 +430,25 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {state.members.map((m, idx) => (
-                      <span key={`${m}-${idx}`} className="relative z-10 px-3 py-1.5 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2 group hover:z-20">
-                        {m}
+                      <div key={`${m}-${idx}`} className="flex items-center gap-1 pl-3 pr-1 py-1 bg-white border border-stone-200 rounded-full text-xs font-medium">
+                        <span>{m}</span>
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.preventDefault();
-                            e.stopPropagation();
-                            console.log("Attempting to delete member:", m);
-                            if (confirm(`Supprimer le membre "${m}" ?`)) {
-                              console.log("Confirmed delete for:", m);
-                              const updated = state.members.filter((_, i) => i !== idx); // Remove by index to be safe against duplicates
-                              console.log("New members list:", updated);
+                            if (window.confirm(`Voulez-vous vraiment supprimer le membre "${m}" ?`)) {
+                              const updated = state.members.filter((_, i) => i !== idx);
                               setState(prev => ({ ...prev, members: updated }));
                               storage.saveLocalMembers(updated);
                               storage.autoSync(state.scriptUrl, { ...state, members: updated }, setSyncStatus);
                             }
                           }}
-                          className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                          className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-stone-50 rounded-full transition-colors cursor-pointer"
                           title={`Supprimer ${m}`}
                         >
                           ✕
                         </button>
-                      </span>
+                      </div>
                     ))}
                   </div>
                 </section>
