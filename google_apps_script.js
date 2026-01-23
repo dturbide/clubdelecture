@@ -5,10 +5,10 @@ function doGet() {
 
     try {
         const data = {
-            books: getSheetData(ss, "Books"),
-            reviews: getSheetData(ss, "Reviews"),
-            genres: getSimpleList(ss, "Genres"),
-            members: getSimpleList(ss, "Members")
+            Livres: getSheetData(ss, "Livres"),
+            Avis: getSheetData(ss, "Avis"),
+            Genres: getSimpleList(ss, "Genres"),
+            Membres: getSimpleList(ss, "Membres")
         };
 
         return ContentService.createTextOutput(JSON.stringify(data))
@@ -32,16 +32,16 @@ function doPost(e) {
         const data = JSON.parse(content);
 
         // Save Books
-        if (data.books) saveSheetData(ss, "Books", data.books);
+        if (data.Livres) saveSheetData(ss, "Livres", data.Livres);
 
         // Save Reviews
-        if (data.reviews) saveSheetData(ss, "Reviews", data.reviews);
+        if (data.Avis) saveSheetData(ss, "Avis", data.Avis);
 
         // Save Genres
-        if (data.genres) saveSimpleList(ss, "Genres", data.genres);
+        if (data.Genres) saveSimpleList(ss, "Genres", data.Genres);
 
         // Save Members
-        if (data.members) saveSimpleList(ss, "Members", data.members);
+        if (data.Membres) saveSimpleList(ss, "Membres", data.Membres);
 
         return ContentService.createTextOutput(JSON.stringify({ success: true }))
             .setMimeType(ContentService.MimeType.JSON);
@@ -133,7 +133,7 @@ function saveSimpleList(ss, sheetName, list) {
 
 function setup() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    ["Books", "Reviews", "Genres", "Members"].forEach(name => {
+    ["Livres", "Avis", "Genres", "Membres"].forEach(name => {
         if (!ss.getSheetByName(name)) ss.insertSheet(name);
     });
 }

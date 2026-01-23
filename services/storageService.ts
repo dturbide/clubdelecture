@@ -86,157 +86,160 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
 
     const text = await response.text();
     try {
-      const data = JSON.parse(text);
+      try {
+        const data = JSON.parse(text);
 
-      // Validation basique
-      if (!data.books && !data.reviews) {
-        console.warn("Format de données suspect:", data);
-      }
-
-      // Map French headers back to internal structure
-      const books = (data.books || []).map((b: any) => ({
-        id: b.id || b["id"] || `book-${Date.now()}-${Math.random()}`,
-        createdAt: b["Horodatage"] || b.createdAt || new Date().toISOString(),
-        addedBy: b["Présenté.e par"] || b.addedBy || "Inconnu",
-        title: b["Titre du livre"] || b.title || "Sans titre",
-        genre: b["Genre littéraire"] || b.genre || "Roman",
-        author: b["Auteur"] || b.author || "Inconnu",
-        summary: b["Résumé"] || b.summary || "",
-        coverUrl: b.coverUrl || "",
-        recommendations: b.recommendations || "",
-        personalRating: b.personalRating || 5
-      }));
-
-      // Parse nested JSON if needed
-      const reviews = (data.reviews || []).map((r: any) => ({
-        ...r,
-        aiAnalysis: typeof r.aiAnalysis === 'string' ? JSON.parse(r.aiAnalysis) : r.aiAnalysis
-      }));
-
-      return {
-        books,
-        reviews,
-        genres: data.genres || [],
-        members: data.members || []
-      };
-    } catch (e) {
-      console.error("JSON Parse Error. Received:", text.substring(0, 100));
-      throw new Error("La réponse de Google n'est pas du JSON valide. Vérifiez le déploiement du script (doit être 'Anyone').");
-    }
-  } catch (error: any) {
-    console.error("Cloud fetch failed:", error);
-    throw error; // Re-throw to let UI handle the message
-  }
-};
-
-let syncTimeout: any = null;
-let lastSyncTime = 0;
-const SYNC_DEBOUNCE_MS = 5000; // Wait 5 seconds after last change
-
-/**
- * Trigger automatic background sync
- * Non-blocking, debounced to avoid rate limits
- */
-export const autoSync = (
-  scriptUrl: string | undefined,
-  data: { books: Book[], reviews: Review[], genres: string[], members: string[] },
-  onStatusChange?: (status: 'syncing' | 'success' | 'error') => void
-) => {
-  if (!scriptUrl) return;
-
-  // Clear pending sync
-  if (syncTimeout) clearTimeout(syncTimeout);
-
-  // Set visual status to "waiting to sync" (optional, for now we just use syncing when it actually starts)
-
-  syncTimeout = setTimeout(async () => {
-    try {
-      if (onStatusChange) onStatusChange('syncing');
-      console.log("☁️ Auto-syncing to Google Sheets...");
-
-      const result = await syncWithCloud(scriptUrl, data);
-
-      if (result.success) {
-        console.log("✅ Auto-sync success");
-        if (onStatusChange) {
-          onStatusChange('success');
-          // Reset status after a few seconds
-          setTimeout(() => onStatusChange('idle' as any), 3000);
+        // Validation basique
+        if (!data.Livres && !data.Avis) {
+          console.warn("Format de données suspect (pas de Livres/Avis):", data);
         }
-      } else {
-        console.error("❌ Auto-sync failed");
+
+        // Map French headers back to internal structure
+        const books = (data.Livres || []).map((b: any) => ({
+          id: b.id || b["id"] || `book-${Date.now()}-${Math.random()}`,
+          createdAt: b["Horodatage"] || b.createdAt || new Date().toISOString(),
+          addedBy: b["Présenté.e par"] || b.addedBy || "Inconnu",
+          title: b["Titre du livre"] || b.title || "Sans titre",
+          genre: b["Genre littéraire"] || b.genre || "Roman",
+          author: b["Auteur"] || b.author || "Inconnu",
+          summary: b["Résumé"] || b.summary || "",
+          coverUrl: b.coverUrl || "",
+          recommendations: b.recommendations || "",
+          personalRating: b.personalRating || 5
+        }));
+
+        // Parse nested JSON if needed
+        const reviews = (data.Avis || []).map((r: any) => ({
+          ...r,
+          aiAnalysis: typeof r.aiAnalysis === 'string' ? JSON.parse(r.aiAnalysis) : r.aiAnalysis
+        }));
+
+        return {
+          books,
+          reviews,
+          genres: data.Genres || [],
+          members: data.Membres || []
+        };
+      } catch (e) {
+        console.error("JSON Parse Error. Received:", text.substring(0, 100));
+        throw new Error("La réponse de Google n'est pas du JSON valide. Vérifiez le déploiement du script (doit être 'Anyone').");
+      }
+    } catch (error: any) {
+      console.error("Cloud fetch failed:", error);
+      throw error; // Re-throw to let UI handle the message
+    }
+  };
+
+  let syncTimeout: any = null;
+  let lastSyncTime = 0;
+  const SYNC_DEBOUNCE_MS = 5000; // Wait 5 seconds after last change
+
+  /**
+   * Trigger automatic background sync
+   * Non-blocking, debounced to avoid rate limits
+   */
+  export const autoSync = (
+    scriptUrl: string | undefined,
+    data: { books: Book[], reviews: Review[], genres: string[], members: string[] },
+    onStatusChange?: (status: 'syncing' | 'success' | 'error') => void
+  ) => {
+    if (!scriptUrl) return;
+
+    // Clear pending sync
+    if (syncTimeout) clearTimeout(syncTimeout);
+
+    // Set visual status to "waiting to sync" (optional, for now we just use syncing when it actually starts)
+
+    syncTimeout = setTimeout(async () => {
+      try {
+        if (onStatusChange) onStatusChange('syncing');
+        console.log("☁️ Auto-syncing to Google Sheets...");
+
+        const result = await syncWithCloud(scriptUrl, data);
+
+        if (result.success) {
+          console.log("✅ Auto-sync success");
+          if (onStatusChange) {
+            onStatusChange('success');
+            // Reset status after a few seconds
+            setTimeout(() => onStatusChange('idle' as any), 3000);
+          }
+        } else {
+          console.error("❌ Auto-sync failed");
+          if (onStatusChange) onStatusChange('error');
+        }
+      } catch (e) {
+        console.error("❌ Auto-sync error:", e);
         if (onStatusChange) onStatusChange('error');
       }
-    } catch (e) {
-      console.error("❌ Auto-sync error:", e);
-      if (onStatusChange) onStatusChange('error');
+    }, SYNC_DEBOUNCE_MS);
+  };
+
+  export const syncWithCloud = async (url: string, data: { books: Book[], reviews: Review[], genres: string[], members: string[] }) => {
+    try {
+      // We use text/plain to avoid CORS preflight (OPTIONS) which often fails with GAS
+      // MAP DATA TO FRENCH HEADERS
+      const mappedBooks = data.books.map(b => ({
+        "Horodatage": b.createdAt,
+        "Présenté.e par": b.addedBy,
+        "Titre du livre": b.title,
+        "Genre littéraire": b.genre,
+        "Auteur": b.author,
+        "Résumé": b.summary,
+        // Keep other fields for compatibility or if needed later
+        "id": b.id,
+        "coverUrl": b.coverUrl,
+        "recommendations": b.recommendations,
+        "personalRating": b.personalRating
+      }));
+
+      const payload = {
+        Livres: mappedBooks,
+        Avis: data.reviews,
+        Genres: data.genres,
+        Membres: data.members
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8",
+        },
+      });
+
+      // Validating response from GAS Web App
+      const result = await response.json();
+      return { success: result.success !== false };
+    } catch (error) {
+      console.error("Cloud sync failed:", error);
+      return { success: false };
     }
-  }, SYNC_DEBOUNCE_MS);
-};
+  };
 
-export const syncWithCloud = async (url: string, data: { books: Book[], reviews: Review[], genres: string[], members: string[] }) => {
-  try {
-    // We use text/plain to avoid CORS preflight (OPTIONS) which often fails with GAS
-    // MAP DATA TO FRENCH HEADERS
-    const mappedBooks = data.books.map(b => ({
-      "Horodatage": b.createdAt,
-      "Présenté.e par": b.addedBy,
-      "Titre du livre": b.title,
-      "Genre littéraire": b.genre,
-      "Auteur": b.author,
-      "Résumé": b.summary,
-      // Keep other fields for compatibility or if needed later
-      "id": b.id,
-      "coverUrl": b.coverUrl,
-      "recommendations": b.recommendations,
-      "personalRating": b.personalRating
-    }));
-
-    const payload = {
-      ...data,
-      books: mappedBooks
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-    });
-
-    // Validating response from GAS Web App
-    const result = await response.json();
-    return { success: result.success !== false };
-  } catch (error) {
-    console.error("Cloud sync failed:", error);
-    return { success: false };
-  }
-};
-
-export const MOCK_BOOKS: Book[] = [
-  {
-    id: "1",
-    title: "L'Alchimiste",
-    author: "Paulo Coelho",
-    genre: "Philosophie",
-    coverUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=400",
-    summary: "Santiago, un jeune berger andalou, part à la recherche d'un trésor caché au pied des Pyramides. Son voyage initiatique lui fera découvrir la 'Légende Personnelle' et le langage du monde.",
-    recommendations: "Indispensable pour ceux qui cherchent leur voie et aiment les contes philosophiques.",
-    personalRating: 5,
-    addedBy: "Admin",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "2",
-    title: "1984",
-    author: "George Orwell",
-    genre: "Dystopie",
-    coverUrl: "https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=400",
-    summary: "Dans un monde sous surveillance constante dirigé par Big Brother, Winston Smith tente de se rebeller contre un système qui contrôle non seulement les actes, mais aussi les pensées.",
-    recommendations: "Un classique absolu pour comprendre les mécanismes du pouvoir et de la manipulation.",
-    personalRating: 4,
-    addedBy: "Admin",
-    createdAt: new Date().toISOString()
-  }
-];
+  export const MOCK_BOOKS: Book[] = [
+    {
+      id: "1",
+      title: "L'Alchimiste",
+      author: "Paulo Coelho",
+      genre: "Philosophie",
+      coverUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=400",
+      summary: "Santiago, un jeune berger andalou, part à la recherche d'un trésor caché au pied des Pyramides. Son voyage initiatique lui fera découvrir la 'Légende Personnelle' et le langage du monde.",
+      recommendations: "Indispensable pour ceux qui cherchent leur voie et aiment les contes philosophiques.",
+      personalRating: 5,
+      addedBy: "Admin",
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "2",
+      title: "1984",
+      author: "George Orwell",
+      genre: "Dystopie",
+      coverUrl: "https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=400",
+      summary: "Dans un monde sous surveillance constante dirigé par Big Brother, Winston Smith tente de se rebeller contre un système qui contrôle non seulement les actes, mais aussi les pensées.",
+      recommendations: "Un classique absolu pour comprendre les mécanismes du pouvoir et de la manipulation.",
+      personalRating: 4,
+      addedBy: "Admin",
+      createdAt: new Date().toISOString()
+    }
+  ];
