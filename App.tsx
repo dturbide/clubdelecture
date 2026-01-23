@@ -922,11 +922,19 @@ const App: React.FC = () => {
             </div>
             <div className="p-6 space-y-8">
               {/* Section 1: Sélectionner son profil */}
-              <section>
-                <h3 className="text-lg font-bold text-amber-700 mb-3 flex items-center gap-2">👤 1. Sélectionner votre profil</h3>
-                <p className="text-stone-600 text-sm leading-relaxed">
-                  Dans la barre latérale, sélectionnez votre nom dans le menu <strong>"Membre Actif"</strong> (fond noir). 
-                  Cela détermine l'attribution de vos propositions et la possibilité de modifier vos livres.
+              <section className="bg-red-50 p-4 rounded-xl border border-red-200">
+                <h3 className="text-lg font-bold text-red-700 mb-3 flex items-center gap-2">⚠️ IMPORTANT - Sélectionner votre profil</h3>
+                <p className="text-stone-700 text-sm leading-relaxed mb-3">
+                  <strong>Avant toute action</strong>, vous devez sélectionner votre nom :
+                </p>
+                <ol className="text-stone-600 text-sm leading-relaxed list-decimal list-inside space-y-2 ml-2">
+                  <li>Regardez la <strong>barre de gauche</strong></li>
+                  <li>Trouvez la boîte noire <strong>"Membre Actif"</strong> (tout en haut)</li>
+                  <li>Cliquez sur le menu déroulant</li>
+                  <li>Sélectionnez <strong>votre nom</strong> dans la liste</li>
+                </ol>
+                <p className="text-red-600 text-xs mt-3 font-bold">
+                  Sans cette étape, vous ne pourrez pas modifier vos livres !
                 </p>
               </section>
 
@@ -934,7 +942,8 @@ const App: React.FC = () => {
               <section>
                 <h3 className="text-lg font-bold text-amber-700 mb-3 flex items-center gap-2">📖 2. Proposer un livre</h3>
                 <ol className="text-stone-600 text-sm leading-relaxed list-decimal list-inside space-y-2">
-                  <li>Cliquez sur <strong>"+ Proposer un livre"</strong> (bouton jaune en bas de la barre latérale)</li>
+                  <li><strong>D'abord :</strong> Vérifiez que votre nom est sélectionné (voir étape 1)</li>
+                  <li>Cliquez sur <strong>"+ Proposer un livre"</strong> (bouton jaune en bas de la barre de gauche)</li>
                   <li>Remplissez le titre et l'auteur</li>
                   <li>Cliquez sur <strong>"🔍 Chercher"</strong> pour trouver une couverture automatiquement</li>
                   <li>Sélectionnez le genre et donnez votre évaluation personnelle (étoiles)</li>
@@ -945,12 +954,17 @@ const App: React.FC = () => {
               {/* Section 3: Modifier un livre */}
               <section className="bg-amber-50 p-4 rounded-xl border border-amber-100">
                 <h3 className="text-lg font-bold text-amber-700 mb-3 flex items-center gap-2">✏️ 3. Modifier une proposition</h3>
-                <p className="text-stone-600 text-sm mb-3">⚠️ <strong>Vous pouvez uniquement modifier VOS livres.</strong></p>
-                <ul className="text-stone-600 text-sm leading-relaxed space-y-2">
-                  <li><strong>Mode Grille :</strong> Survolez la carte → cliquez sur le bouton crayon ✏️</li>
-                  <li><strong>Mode Liste :</strong> Survolez la ligne → cliquez sur le bouton crayon ✏️</li>
-                  <li><strong>Vue détaillée :</strong> Ouvrez les détails → bouton "✏️ Modifier"</li>
-                </ul>
+                <p className="text-red-600 text-sm mb-3 font-bold">⚠️ Vous pouvez uniquement modifier VOS livres (ceux que vous avez proposés).</p>
+                <ol className="text-stone-600 text-sm leading-relaxed list-decimal list-inside space-y-2">
+                  <li><strong>D'abord :</strong> Sélectionnez votre nom dans "Membre Actif" (barre de gauche, boîte noire)</li>
+                  <li><strong>Ensuite :</strong> Trouvez votre livre et survolez-le avec la souris</li>
+                  <li><strong>Cliquez</strong> sur le bouton crayon ✏️ qui apparaît</li>
+                  <li>Modifiez les informations dans le formulaire</li>
+                  <li>Cliquez sur <strong>"Mettre à jour"</strong></li>
+                </ol>
+                <p className="text-stone-500 text-xs mt-3 italic">
+                  💡 Le bouton crayon ✏️ n'apparaît que sur VOS livres, une fois votre nom sélectionné.
+                </p>
               </section>
 
               {/* Section 4: Supprimer un livre */}
