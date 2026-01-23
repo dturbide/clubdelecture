@@ -296,17 +296,25 @@ const App: React.FC = () => {
                   <button
                     onClick={async () => {
                       if (!state.scriptUrl) return alert("Veuillez entrer une URL valide.");
-                      const result = await storage.fetchFromCloud(state.scriptUrl);
-                      if (result) {
-                        if (confirm(`Trouvé : ${result.books.length} livres, ${result.reviews.length} avis. Remplacer les données locales ?`)) {
-                          setState(prev => ({ ...prev, ...result }));
-                          storage.saveAllData(result);
-                          alert("Données chargées avec succès !");
+                      const btn = document.getElementById('load-cloud-btn');
+                      if (btn) btn.innerText = "⏳ Chargement...";
+
+                      try {
+                        const result = await storage.fetchFromCloud(state.scriptUrl);
+                        if (result) {
+                          if (confirm(`Trouvé : ${result.books.length} livres, ${result.reviews.length} avis. Remplacer les données locales ?`)) {
+                            setState(prev => ({ ...prev, ...result }));
+                            storage.saveAllData(result);
+                            alert("Données chargées avec succès !");
+                          }
                         }
-                      } else {
-                        alert("Échec du chargement. Vérifiez l'URL et le déploiement.");
+                      } catch (e: any) {
+                        alert("Erreur : " + e.message);
+                      } finally {
+                        if (btn) btn.innerText = "⬇️ CHARGER DU CLOUD";
                       }
                     }}
+                    id="load-cloud-btn"
                     className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold text-xs shadow-md hover:bg-purple-700 transition-colors"
                   >
                     ⬇️ CHARGER DU CLOUD

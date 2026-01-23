@@ -80,25 +80,38 @@ export const saveAllData = (data: { books: Book[], reviews: Review[], genres: st
 
 export const fetchFromCloud = async (url: string): Promise<{ books: Book[], reviews: Review[], genres: string[], members: string[] } | null> => {
   try {
+    console.log("Fetching from:", url);
     const response = await fetch(url);
-    if (!response.ok) throw new Error("Erreur réseau");
-    const data = await response.json();
+    if (!response.ok) throw new Error(`Erreur réseau: ${response.status} ${response.statusText}`);
 
-    // Parse nested JSON if needed (though the script tries to handle it)
-    const reviews = (data.reviews || []).map((r: any) => ({
-      ...r,
-      aiAnalysis: typeof r.aiAnalysis === 'string' ? JSON.parse(r.aiAnalysis) : r.aiAnalysis
-    }));
+    const text = await response.text();
+    try {
+      const data = JSON.parse(text);
 
-    return {
-      books: data.books || [],
-      reviews,
-      genres: data.genres || [],
-      members: data.members || []
-    };
-  } catch (error) {
+      // Validation basique
+      if (!data.books && !data.reviews) {
+        console.warn("Format de données suspect:", data);
+      }
+
+      // Parse nested JSON if needed
+      const reviews = (data.reviews || []).map((r: any) => ({
+        ...r,
+        aiAnalysis: typeof r.aiAnalysis === 'string' ? JSON.parse(r.aiAnalysis) : r.aiAnalysis
+      }));
+
+      return {
+        books: data.books || [],
+        reviews,
+        genres: data.genres || [],
+        members: data.members || []
+      };
+    } catch (e) {
+      console.error("JSON Parse Error. Received:", text.substring(0, 100));
+      throw new Error("La réponse de Google n'est pas du JSON valide. Vérifiez le déploiement du script (doit être 'Anyone').");
+    }
+  } catch (error: any) {
     console.error("Cloud fetch failed:", error);
-    return null;
+    throw error; // Re-throw to let UI handle the message
   }
 };
 
