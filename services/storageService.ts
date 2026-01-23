@@ -81,7 +81,9 @@ export const saveAllData = (data: { books: Book[], reviews: Review[], genres: st
 export const fetchFromCloud = async (url: string): Promise<{ books: Book[], reviews: Review[], genres: string[], members: string[] } | null> => {
   try {
     console.log("Fetching from:", url);
-    const response = await fetch(url);
+    // Add cache buster to avoid browser caching
+    const fetchUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+    const response = await fetch(fetchUrl);
     if (!response.ok) throw new Error(`Erreur réseau: ${response.status} ${response.statusText}`);
 
     const text = await response.text();
