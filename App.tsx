@@ -180,9 +180,15 @@ const App: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <header className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-stone-800">📚 Livres et tes pensées</h1>
-          <p className="text-stone-500 text-sm">Votre espace de lecture partagé</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-stone-800">📚 Livres et tes pensées</h1>
+            <p className="text-stone-500 text-sm">Votre espace de lecture partagé</p>
+          </div>
+          <div className="bg-amber-100 border-2 border-amber-400 rounded-2xl px-5 py-3 text-center shadow-md">
+            <p className="text-3xl font-bold text-amber-700">{state.books.length}</p>
+            <p className="text-xs font-bold text-amber-600 uppercase tracking-wide">livres</p>
+          </div>
         </div>
         <div className="flex gap-2">
           {syncStatus === 'syncing' && <span className="text-xs font-bold text-amber-600 self-center animate-pulse">☁️ Sauvegarde...</span>}
