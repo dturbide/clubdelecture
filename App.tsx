@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Book, Review, AppState } from './types';
 import * as storage from './services/storageService';
-import { searchBookCover } from './services/geminiService';
 import BookCard from './components/BookCard';
 import BookRow from './components/BookRow';
 import ReviewList from './components/ReviewList';

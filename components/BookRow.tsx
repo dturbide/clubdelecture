@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Book, Review, Sentiment } from '../types';
+import { Book, Review } from '../types';
 
 const DEFAULT_COVER = "https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=400&auto=format&fit=crop";
 
@@ -14,21 +14,19 @@ interface BookRowProps {
 
 const BookRow: React.FC<BookRowProps> = ({ book, currentUser, reviews, onClick, onEdit }) => {
   const bookReviews = reviews.filter(r => r.bookId === book.id);
-  const avgRating = bookReviews.length 
+  const avgRating = bookReviews.length
     ? (bookReviews.reduce((sum, r) => sum + r.rating, 0) / bookReviews.length).toFixed(1)
     : "N/A";
 
-  const lastAiAnalysis = bookReviews.length > 0 ? bookReviews[bookReviews.length - 1].aiAnalysis : null;
-
   return (
-    <div 
+    <div
       onClick={() => onClick(book)}
       className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all cursor-pointer border border-stone-100 flex items-center p-3 group"
     >
       <div className="w-16 h-24 flex-shrink-0 overflow-hidden rounded-lg bg-stone-200 mr-4">
-        <img 
-          src={book.coverUrl || DEFAULT_COVER} 
-          alt={book.title} 
+        <img
+          src={book.coverUrl || DEFAULT_COVER}
+          alt={book.title}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_COVER; }}
         />

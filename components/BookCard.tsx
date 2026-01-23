@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Book, Review, Sentiment } from '../types';
+import { Book, Review } from '../types';
 
 const DEFAULT_COVER = "https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=400&auto=format&fit=crop";
 
@@ -14,28 +14,26 @@ interface BookCardProps {
 
 const BookCard: React.FC<BookCardProps> = ({ book, currentUser, reviews, onClick, onEdit }) => {
   const bookReviews = reviews.filter(r => r.bookId === book.id);
-  const avgRating = bookReviews.length 
+  const avgRating = bookReviews.length
     ? (bookReviews.reduce((sum, r) => sum + r.rating, 0) / bookReviews.length).toFixed(1)
     : "N/A";
 
-  const lastAiAnalysis = bookReviews.length > 0 ? bookReviews[bookReviews.length - 1].aiAnalysis : null;
-
   return (
-    <div 
+    <div
       onClick={() => onClick(book)}
       className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all cursor-pointer border border-stone-100 group flex flex-col h-full relative"
     >
       <div className="relative aspect-[2/3] overflow-hidden bg-stone-200">
-        <img 
-          src={book.coverUrl || DEFAULT_COVER} 
-          alt={book.title} 
+        <img
+          src={book.coverUrl || DEFAULT_COVER}
+          alt={book.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_COVER; }}
         />
         <div className="absolute top-2 right-2 flex flex-col gap-2 items-end">
           <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold shadow-sm">⭐ {avgRating}</div>
           {currentUser === book.addedBy && (
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); onEdit(book); }}
               className="w-8 h-8 bg-amber-600 text-white rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
               title="Modifier"
@@ -51,13 +49,9 @@ const BookCard: React.FC<BookCardProps> = ({ book, currentUser, reviews, onClick
           <h3 className="font-serif text-lg font-bold text-stone-800 leading-tight mb-1">{book.title}</h3>
           <p className="text-sm text-stone-500 italic">{book.author}</p>
         </div>
-        {lastAiAnalysis && (
-          <div className="mt-2 mb-3">
-            <p className="text-xs text-stone-600 line-clamp-2 italic leading-relaxed">"{lastAiAnalysis.summary}"</p>
-          </div>
-        )}
         <div className="mt-auto pt-3 border-t border-stone-50 flex justify-between items-center">
           <p className="text-[9px] text-stone-400 italic">Par {book.addedBy}</p>
+          <p className="text-[9px] text-stone-400">{bookReviews.length} avis</p>
         </div>
       </div>
     </div>
