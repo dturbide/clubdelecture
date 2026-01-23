@@ -381,15 +381,18 @@ const App: React.FC = () => {
                     >Ajouter</button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {state.genres.map(g => (
-                      <span key={g} className="px-3 py-1.5 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2 group">
+                    {state.genres.map((g, idx) => (
+                      <span key={`${g}-${idx}`} className="relative z-10 px-3 py-1.5 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2 group hover:z-20">
                         {g}
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                            console.log("Attempting to delete genre:", g);
                             if (confirm(`Supprimer le genre "${g}" ?`)) {
-                              const updated = state.genres.filter(x => x !== g);
+                              console.log("Confirmed delete for:", g);
+                              const updated = state.genres.filter((_, i) => i !== idx); // Remove by index
+                              console.log("New genres list:", updated);
                               setState(prev => ({ ...prev, genres: updated }));
                               storage.saveLocalGenres(updated);
                               storage.autoSync(state.scriptUrl, { ...state, genres: updated }, setSyncStatus);
@@ -429,15 +432,18 @@ const App: React.FC = () => {
                     >Ajouter</button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {state.members.map(m => (
-                      <span key={m} className="px-3 py-1.5 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2 group">
+                    {state.members.map((m, idx) => (
+                      <span key={`${m}-${idx}`} className="relative z-10 px-3 py-1.5 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2 group hover:z-20">
                         {m}
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                            console.log("Attempting to delete member:", m);
                             if (confirm(`Supprimer le membre "${m}" ?`)) {
-                              const updated = state.members.filter(x => x !== m);
+                              console.log("Confirmed delete for:", m);
+                              const updated = state.members.filter((_, i) => i !== idx); // Remove by index to be safe against duplicates
+                              console.log("New members list:", updated);
                               setState(prev => ({ ...prev, members: updated }));
                               storage.saveLocalMembers(updated);
                               storage.autoSync(state.scriptUrl, { ...state, members: updated }, setSyncStatus);
