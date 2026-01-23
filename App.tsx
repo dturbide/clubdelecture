@@ -56,7 +56,11 @@ const App: React.FC = () => {
         let members = storage.getLocalMembers();
         const scriptUrl = storage.getConfig() || "https://script.google.com/macros/s/AKfycbw8sfAt4FbspEoSuteXbBkZ8F-XdY-1ac6NJBGAo8UCLReSY2uTWWawrhgGGPDE4x2C/exec";
         if (books.length === 0) books = storage.MOCK_BOOKS;
+        // Ensure members has at least default values
+        if (members.length === 0) members = ['Admin', 'Visiteur'];
         setState({ books, reviews, genres, members, scriptUrl, isLoading: false });
+        // Set currentUser to the first member in the list
+        setCurrentUser(members[0]);
       };
       init();
     } catch (e) {
@@ -151,14 +155,26 @@ const App: React.FC = () => {
   };
 
   const filteredBooks = useMemo(() => {
-    let result = state.books.filter(b =>
-      (b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.author.toLowerCase().includes(searchQuery.toLowerCase())) &&
-      (filterGenre === 'Tous' || b.genre === filterGenre)
-    );
+    let result = state.books.filter(b => {
+      // Search filter
+      const matchesSearch = b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.author.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Genre filter (including special "MES_PROPOSITIONS" filter)
+      let matchesGenre = true;
+      if (filterGenre === 'MES_PROPOSITIONS') {
+        matchesGenre = b.addedBy === currentUser;
+      } else if (filterGenre !== 'Tous') {
+        matchesGenre = b.genre === filterGenre;
+      }
+
+      return matchesSearch && matchesGenre;
+    });
+
     if (sortBy === 'alpha') result.sort((a, b) => a.title.localeCompare(b.title));
     else result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return result;
-  }, [state.books, searchQuery, filterGenre, sortBy]);
+  }, [state.books, searchQuery, filterGenre, sortBy, currentUser]);
 
   if (state.isLoading) return <div className="min-h-screen flex items-center justify-center font-serif bg-[#fcfaf7]">Initialisation...</div>;
 
@@ -195,6 +211,15 @@ const App: React.FC = () => {
               <option value="Tous">Tous les genres</option>
               {state.genres.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
+            <button
+              onClick={() => setFilterGenre(filterGenre === 'MES_PROPOSITIONS' ? 'Tous' : 'MES_PROPOSITIONS')}
+              className={`w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${filterGenre === 'MES_PROPOSITIONS'
+                ? 'bg-amber-600 text-white'
+                : 'bg-stone-50 border border-stone-100 text-stone-600 hover:bg-amber-50'
+                }`}
+            >
+              {filterGenre === 'MES_PROPOSITIONS' ? '✓ Mes propositions' : '📚 Mes propositions'}
+            </button>
           </div>
         </aside>
 
@@ -239,7 +264,20 @@ const App: React.FC = () => {
       </main>
 
       {!selectedBook && (
-        <button onClick={() => { setEditingBook(null); setBookForm({ title: '', author: '', genre: state.genres[0], coverUrl: '', summary: '', recommendations: '', personalRating: 5, addedBy: currentUser }); setIsAddBookOpen(true); }} className="fixed bottom-8 right-8 bg-stone-900 text-white px-8 py-4 rounded-full shadow-2xl font-bold hover:bg-amber-600 transition-all z-40 flex items-center gap-2">
+        <button onClick={() => {
+          setEditingBook(null);
+          setBookForm({
+            title: '',
+            author: '',
+            genre: state.genres[0] || 'Roman',
+            coverUrl: '',
+            summary: '',
+            recommendations: '',
+            personalRating: 5,
+            addedBy: currentUser
+          });
+          setIsAddBookOpen(true);
+        }} className="fixed bottom-8 right-8 bg-stone-900 text-white px-8 py-4 rounded-full shadow-2xl font-bold hover:bg-amber-600 transition-all z-40 flex items-center gap-2">
           <span className="text-2xl">+</span> Proposer un livre
         </button>
       )}
