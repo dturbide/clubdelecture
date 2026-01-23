@@ -169,15 +169,16 @@ const App: React.FC = () => {
   useEffect(() => {
     try {
       const init = async () => {
+        // Charger les données locales comme fallback
         let books = storage.getLocalBooks();
         let reviews = storage.getLocalReviews();
         let genres = storage.getLocalGenres();
         let members = storage.getLocalMembers();
         const scriptUrl = storage.getConfig() || "https://script.google.com/macros/s/AKfycbw8sfAt4FbspEoSuteXbBkZ8F-XdY-1ac6NJBGAo8UCLReSY2uTWWawrhgGGPDE4x2C/exec";
         
-        // Si localStorage vide, charger automatiquement depuis Google Sheets
-        if (books.length === 0 && scriptUrl) {
-          console.log("📥 localStorage vide, chargement depuis Google Sheets...");
+        // TOUJOURS charger depuis Google Sheets pour avoir les données à jour
+        if (scriptUrl) {
+          console.log("📥 Chargement des données depuis Google Sheets...");
           try {
             const cloudData = await storage.fetchFromCloud(scriptUrl);
             if (cloudData && cloudData.books.length > 0) {
@@ -185,12 +186,12 @@ const App: React.FC = () => {
               reviews = cloudData.reviews;
               genres = cloudData.genres.length > 0 ? cloudData.genres : genres;
               members = cloudData.members.length > 0 ? cloudData.members : members;
-              // Sauvegarder localement pour les prochains chargements
+              // Mettre à jour le cache local
               storage.saveAllData({ books, reviews, genres, members });
-              console.log(`✅ ${books.length} livres chargés depuis Google Sheets`);
+              console.log(`✅ ${books.length} livres synchronisés depuis Google Sheets`);
             }
           } catch (e) {
-            console.warn("Impossible de charger depuis Google Sheets:", e);
+            console.warn("⚠️ Impossible de charger depuis Google Sheets, utilisation des données locales:", e);
           }
         }
         
