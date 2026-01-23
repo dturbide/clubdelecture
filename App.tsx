@@ -217,8 +217,8 @@ const App: React.FC = () => {
               <button
                 onClick={() => setSortBy('recent')}
                 className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${sortBy === 'recent'
-                    ? 'bg-stone-800 text-white'
-                    : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
+                  ? 'bg-stone-800 text-white'
+                  : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
                   }`}
               >
                 🕒 Récents
@@ -226,8 +226,8 @@ const App: React.FC = () => {
               <button
                 onClick={() => setSortBy('alpha')}
                 className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${sortBy === 'alpha'
-                    ? 'bg-stone-800 text-white'
-                    : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
+                  ? 'bg-stone-800 text-white'
+                  : 'bg-stone-50 border border-stone-100 text-stone-500 hover:bg-stone-100'
                   }`}
               >
                 🔤 A-Z
@@ -383,16 +383,24 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {state.genres.map(g => (
-                      <span key={g} className="px-3 py-1 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2">
+                      <span key={g} className="px-3 py-1.5 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2 group">
                         {g}
-                        <button onClick={() => {
-                          if (confirm(`Supprimer le genre "${g}" ?`)) {
-                            const updated = state.genres.filter(x => x !== g);
-                            setState(prev => ({ ...prev, genres: updated }));
-                            storage.saveLocalGenres(updated);
-                            storage.autoSync(state.scriptUrl, { ...state, genres: updated }, setSyncStatus); // Sync
-                          }
-                        }} className="text-stone-400 hover:text-red-500">✕</button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (confirm(`Supprimer le genre "${g}" ?`)) {
+                              const updated = state.genres.filter(x => x !== g);
+                              setState(prev => ({ ...prev, genres: updated }));
+                              storage.saveLocalGenres(updated);
+                              storage.autoSync(state.scriptUrl, { ...state, genres: updated }, setSyncStatus);
+                            }
+                          }}
+                          className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                          title={`Supprimer ${g}`}
+                        >
+                          ✕
+                        </button>
                       </span>
                     ))}
                   </div>
@@ -423,16 +431,24 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {state.members.map(m => (
-                      <span key={m} className="px-3 py-1 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2">
+                      <span key={m} className="px-3 py-1.5 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2 group">
                         {m}
-                        <button onClick={() => {
-                          if (confirm(`Supprimer le membre "${m}" ?`)) {
-                            const updated = state.members.filter(x => x !== m);
-                            setState(prev => ({ ...prev, members: updated }));
-                            storage.saveLocalMembers(updated);
-                            storage.autoSync(state.scriptUrl, { ...state, members: updated }, setSyncStatus); // Sync
-                          }
-                        }} className="text-stone-400 hover:text-red-500">✕</button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (confirm(`Supprimer le membre "${m}" ?`)) {
+                              const updated = state.members.filter(x => x !== m);
+                              setState(prev => ({ ...prev, members: updated }));
+                              storage.saveLocalMembers(updated);
+                              storage.autoSync(state.scriptUrl, { ...state, members: updated }, setSyncStatus);
+                            }
+                          }}
+                          className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                          title={`Supprimer ${m}`}
+                        >
+                          ✕
+                        </button>
                       </span>
                     ))}
                   </div>
