@@ -19,6 +19,8 @@ const App: React.FC = () => {
     isLoading: true
   });
 
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+
   const [currentUser, setCurrentUser] = useState<string>('Visiteur');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
@@ -128,7 +130,12 @@ const App: React.FC = () => {
       const finalBooks = importPreview.map(b => ({ ...b, id: `book-${Date.now()}-${Math.random()}` }));
       const newState = [...state.books, ...finalBooks];
       setState(prev => ({ ...prev, books: newState }));
+      setState(prev => ({ ...prev, books: newState }));
       storage.saveLocalBooks(newState);
+
+      // Auto-sync
+      storage.autoSync(state.scriptUrl, { ...state, books: newState }, setSyncStatus);
+
       setImportPreview([]);
       setCsvPasteContent('');
       setIsAdminOpen(false);
@@ -156,6 +163,10 @@ const App: React.FC = () => {
           <p className="text-stone-500 text-sm">Votre espace de lecture partagé</p>
         </div>
         <div className="flex gap-2">
+          {syncStatus === 'syncing' && <span className="text-xs font-bold text-amber-600 self-center animate-pulse">☁️ Sauvegarde...</span>}
+          {syncStatus === 'success' && <span className="text-xs font-bold text-green-600 self-center">✅ Sauvegardé</span>}
+          {syncStatus === 'error' && <span className="text-xs font-bold text-red-600 self-center">⚠️ Erreur Synchro</span>}
+
           <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold">
             {viewMode === 'grid' ? '📄 Liste' : '🔲 Grille'}
           </button>
@@ -197,6 +208,7 @@ const App: React.FC = () => {
                       const updated = [...state.reviews, r];
                       setState(prev => ({ ...prev, reviews: updated }));
                       storage.saveLocalReviews(updated);
+                      storage.autoSync(state.scriptUrl, { ...state, reviews: updated }, setSyncStatus); // Auto-sync reviews
                     }} />
                   </div>
                 </div>
@@ -375,7 +387,12 @@ const App: React.FC = () => {
                 updatedBooks = [...state.books, newBook];
               }
               setState(prev => ({ ...prev, books: updatedBooks }));
+              setState(prev => ({ ...prev, books: updatedBooks }));
               storage.saveLocalBooks(updatedBooks);
+
+              // Auto-sync edits/additions
+              storage.autoSync(state.scriptUrl, { ...state, books: updatedBooks }, setSyncStatus);
+
               setIsAddBookOpen(false);
               setEditingBook(null);
             }} className="space-y-4">

@@ -102,6 +102,51 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
   }
 };
 
+let syncTimeout: any = null;
+let lastSyncTime = 0;
+const SYNC_DEBOUNCE_MS = 5000; // Wait 5 seconds after last change
+
+/**
+ * Trigger automatic background sync
+ * Non-blocking, debounced to avoid rate limits
+ */
+export const autoSync = (
+  scriptUrl: string | undefined,
+  data: { books: Book[], reviews: Review[], genres: string[], members: string[] },
+  onStatusChange?: (status: 'syncing' | 'success' | 'error') => void
+) => {
+  if (!scriptUrl) return;
+
+  // Clear pending sync
+  if (syncTimeout) clearTimeout(syncTimeout);
+
+  // Set visual status to "waiting to sync" (optional, for now we just use syncing when it actually starts)
+
+  syncTimeout = setTimeout(async () => {
+    try {
+      if (onStatusChange) onStatusChange('syncing');
+      console.log("☁️ Auto-syncing to Google Sheets...");
+
+      const result = await syncWithCloud(scriptUrl, data);
+
+      if (result.success) {
+        console.log("✅ Auto-sync success");
+        if (onStatusChange) {
+          onStatusChange('success');
+          // Reset status after a few seconds
+          setTimeout(() => onStatusChange('idle' as any), 3000);
+        }
+      } else {
+        console.error("❌ Auto-sync failed");
+        if (onStatusChange) onStatusChange('error');
+      }
+    } catch (e) {
+      console.error("❌ Auto-sync error:", e);
+      if (onStatusChange) onStatusChange('error');
+    }
+  }, SYNC_DEBOUNCE_MS);
+};
+
 export const syncWithCloud = async (url: string, data: { books: Book[], reviews: Review[], genres: string[], members: string[] }) => {
   try {
     // We use text/plain to avoid CORS preflight (OPTIONS) which often fails with GAS
