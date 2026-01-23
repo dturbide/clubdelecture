@@ -8,7 +8,27 @@ import ReviewList from './components/ReviewList';
 
 const DEFAULT_COVER = "https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=400&auto=format&fit=crop";
 
+// Hash SHA-256 du mot de passe "livre2026"
+// Pour générer un nouveau hash: console.log(await hashPassword("nouveau_mot_de_passe"))
+const PASSWORD_HASH = "33eb8405e01fcb5609bcbf6faa0bb83de9925cdfafe698c859bdd8dc7c63034c";
+
+// Fonction de hachage SHA-256
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + "clubdelecture_salt_2026");
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 const App: React.FC = () => {
+  // État d'authentification globale
+  const [isAppAuthenticated, setIsAppAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('clubdelecture_auth') === 'true';
+  });
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
   const [state, setState] = useState<AppState>({
     books: [],
     reviews: [],
@@ -259,6 +279,67 @@ const App: React.FC = () => {
 
   if (state.isLoading) return <div className="min-h-screen flex items-center justify-center font-serif bg-[#fcfaf7]">Initialisation...</div>;
 
+  // Écran de connexion - bloque toute l'application
+  if (!isAppAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-amber-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full border border-stone-100">
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-4">📚</div>
+            <h1 className="font-serif text-3xl font-bold text-stone-800 mb-2">Livres et tes pensées</h1>
+            <p className="text-stone-500 text-sm">Votre espace de lecture partagé</p>
+          </div>
+          
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            setLoginError('');
+            
+            const inputHash = await hashPassword(loginPassword);
+            
+            if (inputHash === PASSWORD_HASH) {
+              sessionStorage.setItem('clubdelecture_auth', 'true');
+              setIsAppAuthenticated(true);
+            } else {
+              setLoginError('Mot de passe incorrect');
+              setLoginPassword('');
+            }
+          }} className="space-y-4">
+            <div>
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">
+                🔐 Mot de passe
+              </label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="Entrez le mot de passe"
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none focus:ring-2 focus:ring-amber-500 text-center text-lg"
+                autoFocus
+              />
+            </div>
+            
+            {loginError && (
+              <p className="text-red-600 text-sm text-center font-bold bg-red-50 py-2 rounded-lg">
+                ⚠️ {loginError}
+              </p>
+            )}
+            
+            <button
+              type="submit"
+              className="w-full py-4 bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg hover:bg-amber-700 transition-colors"
+            >
+              Entrer dans le club
+            </button>
+          </form>
+          
+          <p className="text-center text-xs text-stone-400 mt-6">
+            Accès réservé aux membres du club de lecture
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <header className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
@@ -308,6 +389,16 @@ const App: React.FC = () => {
             ❓
           </button>
           <button onClick={() => setIsAdminOpen(true)} className="px-5 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-amber-700 transition-colors">⚙️ ADMINISTRATION</button>
+          <button 
+            onClick={() => {
+              sessionStorage.removeItem('clubdelecture_auth');
+              setIsAppAuthenticated(false);
+            }} 
+            className="p-2.5 bg-red-50 rounded-xl shadow-sm border border-red-200 text-sm font-bold hover:bg-red-100 transition-colors text-red-600" 
+            title="Déconnexion"
+          >
+            🚪
+          </button>
         </div>
       </header>
 
