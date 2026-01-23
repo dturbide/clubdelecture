@@ -15,7 +15,7 @@ const App: React.FC = () => {
     reviews: [],
     genres: [],
     members: [],
-    scriptUrl: "https://script.google.com/macros/s/AKfycbwNFy87Mt__t5syGUAG-lo9Aap6-nLk8AEH9jBP-3PB3JntrC1fzDJ_rkAc5_SlkBlEDg/exec",
+    scriptUrl: "https://script.google.com/macros/s/AKfycbw8sfAt4FbspEoSuteXbBkZ8F-XdY-1ac6NJBGAo8UCLReSY2uTWWawrhgGGPDE4x2C/exec",
     isLoading: true
   });
 
@@ -54,7 +54,7 @@ const App: React.FC = () => {
         let reviews = storage.getLocalReviews();
         let genres = storage.getLocalGenres();
         let members = storage.getLocalMembers();
-        const scriptUrl = storage.getConfig() || "https://script.google.com/macros/s/AKfycbwNFy87Mt__t5syGUAG-lo9Aap6-nLk8AEH9jBP-3PB3JntrC1fzDJ_rkAc5_SlkBlEDg/exec";
+        const scriptUrl = storage.getConfig() || "https://script.google.com/macros/s/AKfycbw8sfAt4FbspEoSuteXbBkZ8F-XdY-1ac6NJBGAo8UCLReSY2uTWWawrhgGGPDE4x2C/exec";
         if (books.length === 0) books = storage.MOCK_BOOKS;
         setState({ books, reviews, genres, members, scriptUrl, isLoading: false });
       };
