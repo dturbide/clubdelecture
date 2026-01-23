@@ -130,7 +130,7 @@ const App: React.FC = () => {
       const finalBooks = importPreview.map(b => ({ ...b, id: `book-${Date.now()}-${Math.random()}` }));
       const newState = [...state.books, ...finalBooks];
       setState(prev => ({ ...prev, books: newState }));
-      setState(prev => ({ ...prev, books: newState }));
+
       storage.saveLocalBooks(newState);
 
       // Auto-sync
@@ -387,7 +387,7 @@ const App: React.FC = () => {
                 updatedBooks = [...state.books, newBook];
               }
               setState(prev => ({ ...prev, books: updatedBooks }));
-              setState(prev => ({ ...prev, books: updatedBooks }));
+
               storage.saveLocalBooks(updatedBooks);
 
               // Auto-sync edits/additions
