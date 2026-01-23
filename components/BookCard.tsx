@@ -14,6 +14,7 @@ interface BookCardProps {
 
 const BookCard: React.FC<BookCardProps> = ({ book, currentUser, reviews, onClick, onEdit }) => {
   const bookReviews = reviews.filter(r => r.bookId === book.id);
+  const isOwner = currentUser.trim().toLowerCase() === (book.addedBy || '').trim().toLowerCase();
   const avgRating = bookReviews.length
     ? (bookReviews.reduce((sum, r) => sum + r.rating, 0) / bookReviews.length).toFixed(1)
     : "N/A";
@@ -32,7 +33,7 @@ const BookCard: React.FC<BookCardProps> = ({ book, currentUser, reviews, onClick
         />
         <div className="absolute top-2 right-2 flex flex-col gap-2 items-end">
           <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold shadow-sm">⭐ {avgRating}</div>
-          {currentUser === book.addedBy && (
+          {isOwner && (
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(book); }}
               className="w-8 h-8 bg-amber-600 text-white rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
