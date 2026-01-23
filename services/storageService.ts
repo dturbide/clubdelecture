@@ -93,6 +93,20 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
         console.warn("Format de données suspect:", data);
       }
 
+      // Map French headers back to internal structure
+      const books = (data.books || []).map((b: any) => ({
+        id: b.id || b["id"] || `book-${Date.now()}-${Math.random()}`,
+        createdAt: b["Horodatage"] || b.createdAt || new Date().toISOString(),
+        addedBy: b["Présenté.e par"] || b.addedBy || "Inconnu",
+        title: b["Titre du livre"] || b.title || "Sans titre",
+        genre: b["Genre littéraire"] || b.genre || "Roman",
+        author: b["Auteur"] || b.author || "Inconnu",
+        summary: b["Résumé"] || b.summary || "",
+        coverUrl: b.coverUrl || "",
+        recommendations: b.recommendations || "",
+        personalRating: b.personalRating || 5
+      }));
+
       // Parse nested JSON if needed
       const reviews = (data.reviews || []).map((r: any) => ({
         ...r,
@@ -100,7 +114,7 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
       }));
 
       return {
-        books: data.books || [],
+        books,
         reviews,
         genres: data.genres || [],
         members: data.members || []
@@ -163,9 +177,29 @@ export const autoSync = (
 export const syncWithCloud = async (url: string, data: { books: Book[], reviews: Review[], genres: string[], members: string[] }) => {
   try {
     // We use text/plain to avoid CORS preflight (OPTIONS) which often fails with GAS
+    // MAP DATA TO FRENCH HEADERS
+    const mappedBooks = data.books.map(b => ({
+      "Horodatage": b.createdAt,
+      "Présenté.e par": b.addedBy,
+      "Titre du livre": b.title,
+      "Genre littéraire": b.genre,
+      "Auteur": b.author,
+      "Résumé": b.summary,
+      // Keep other fields for compatibility or if needed later
+      "id": b.id,
+      "coverUrl": b.coverUrl,
+      "recommendations": b.recommendations,
+      "personalRating": b.personalRating
+    }));
+
+    const payload = {
+      ...data,
+      books: mappedBooks
+    };
+
     const response = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
       headers: {
         "Content-Type": "text/plain;charset=utf-8",
       },

@@ -30,9 +30,16 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [csvPasteContent, setCsvPasteContent] = useState('');
   const [importPreview, setImportPreview] = useState<Book[]>([]);
+
+  // New state for management inputs
+  const [newGenre, setNewGenre] = useState('');
+  const [newMember, setNewMember] = useState('');
 
   const [bookForm, setBookForm] = useState({
     title: '', author: '', genre: '', coverUrl: '', summary: '', recommendations: '', personalRating: 5, addedBy: ''
@@ -89,10 +96,10 @@ const App: React.FC = () => {
       };
 
       const idx = {
-        title: findCol(["titre", "livre", "nom", "title"]),
-        author: findCol(["auteur", "author"]),
-        genre: findCol(["genre"]),
-        summary: findCol(["resume", "description", "summary"])
+        title: findCol(["titre du livre", "titre", "livre", "nom", "title"]),
+        author: findCol(["auteur", "auteur,", "présenté.e par", "author"]), // "auteur," matches the user request strictly
+        genre: findCol(["genre littéraire", "genre"]),
+        summary: findCol(["résumé", "description", "summary"])
       };
 
       if (idx.title === -1 || idx.author === -1) return;
@@ -237,143 +244,258 @@ const App: React.FC = () => {
         </button>
       )}
 
-      {/* ADMIN MODAL - SANS MOT DE PASSE POUR TEST */}
+      {/* ADMIN MODAL */}
       {isAdminOpen && (
         <div className="fixed inset-0 bg-stone-900/90 backdrop-blur-md z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] p-8 max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="font-serif text-3xl font-bold text-stone-800">Gestion des Données</h2>
-                <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mt-1">Outils d'importation collaborative</p>
+                <h2 className="font-serif text-3xl font-bold text-stone-800">Administration</h2>
+                <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mt-1">Zone sécurisée</p>
               </div>
               <button onClick={() => setIsAdminOpen(false)} className="w-10 h-10 flex items-center justify-center bg-stone-100 rounded-full font-bold">✕</button>
             </div>
 
-            <div className="flex-grow overflow-y-auto space-y-8 pr-2">
-              <section className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-center justify-between">
-                <p className="text-blue-700 text-sm font-medium">Vérifiez si le système répond correctement :</p>
-                <button onClick={testSystem} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-sm hover:bg-blue-700 transition-colors">🚀 TESTER LE SYSTÈME</button>
-              </section>
-
-              <section className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-stone-800">1. Coller vos données (CSV ou Excel)</h3>
-                  <button onClick={() => { storage.saveLocalBooks([]); setState(prev => ({ ...prev, books: [] })); alert("Bibliothèque vidée."); }} className="text-[10px] font-bold text-red-500 hover:underline">VIDER TOUT</button>
-                </div>
-                <textarea
-                  value={csvPasteContent}
-                  onChange={(e) => parseAndPreview(e.target.value)}
-                  placeholder="Exemple: Titre;Auteur;Genre&#10;L'étranger;Albert Camus;Roman"
-                  className="w-full h-40 p-4 text-xs font-mono bg-stone-50 border border-stone-200 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </section>
-
-              <section className="bg-purple-50 p-6 rounded-2xl border border-purple-100 space-y-4">
-                <h3 className="font-bold text-purple-900 flex items-center gap-2">
-                  ☁️ Synchronisation Google Sheets
-                </h3>
-                <p className="text-purple-700 text-xs text-justify leading-relaxed">
-                  Pour activer la sauvegarde en ligne :
-                  <br />1. Créez un Google Sheet et allez dans Extensions {'>'} Apps Script.
-                  <br />2. Collez le code fourni (google_apps_script.js).
-                  <br />3. Déployez en tant qu'application Web (Accès: "Anyone").
-                  <br />4. Collez l'URL ici :
-                </p>
-
+            {!isAdminAuthenticated ? (
+              <div className="flex flex-col items-center justify-center space-y-4 py-10">
+                <p className="text-stone-600 font-serif">Veuillez entrer le mot de passe administrateur</p>
                 <input
-                  type="text"
-                  placeholder="https://script.google.com/macros/s/..."
-                  value={state.scriptUrl || ''}
-                  onChange={(e) => {
-                    const url = e.target.value;
-                    setState(prev => ({ ...prev, scriptUrl: url }));
-                    storage.saveConfig(url);
-                  }}
-                  className="w-full px-4 py-3 rounded-xl border border-purple-200 bg-white text-xs outline-none focus:ring-2 focus:ring-purple-500"
-                />
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={async () => {
-                      if (!state.scriptUrl) return alert("Veuillez entrer une URL valide.");
-                      const btn = document.getElementById('load-cloud-btn');
-                      if (btn) btn.innerText = "⏳ Chargement...";
-
-                      try {
-                        const result = await storage.fetchFromCloud(state.scriptUrl);
-                        if (result) {
-                          if (confirm(`Trouvé : ${result.books.length} livres, ${result.reviews.length} avis. Remplacer les données locales ?`)) {
-                            setState(prev => ({ ...prev, ...result }));
-                            storage.saveAllData(result);
-                            alert("Données chargées avec succès !");
-                          }
-                        }
-                      } catch (e: any) {
-                        alert("Erreur : " + e.message);
-                      } finally {
-                        if (btn) btn.innerText = "⬇️ CHARGER DU CLOUD";
+                  type="password"
+                  className="px-4 py-2 border border-stone-300 rounded-xl outline-none focus:ring-2 focus:ring-amber-500"
+                  value={adminPasswordInput}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (adminPasswordInput === 'club-lecture-2024') {
+                        setIsAdminAuthenticated(true);
+                        setAdminPasswordInput('');
+                      } else {
+                        alert('Mot de passe incorrect');
                       }
-                    }}
-                    id="load-cloud-btn"
-                    className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold text-xs shadow-md hover:bg-purple-700 transition-colors"
-                  >
-                    ⬇️ CHARGER DU CLOUD
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!state.scriptUrl) return alert("Veuillez entrer une URL valide.");
-                      const success = await storage.syncWithCloud(state.scriptUrl, {
-                        books: state.books,
-                        reviews: state.reviews,
-                        genres: state.genres,
-                        members: state.members
-                      });
-                      if (success.success) alert("Sauvegarde réussie !");
-                      else alert("Erreur lors de la sauvegarde.");
-                    }}
-                    className="flex-1 py-3 bg-white text-purple-600 border border-purple-200 rounded-xl font-bold text-xs shadow-sm hover:bg-purple-50 transition-colors"
-                  >
-                    ⬆️ ENVOYER VERS CLOUD
-                  </button>
-                </div>
-              </section>
-
-              {importPreview.length > 0 && (
-                <section className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                  <h3 className="font-bold text-stone-800 flex items-center gap-2">
-                    2. Aperçu ({importPreview.length} livres trouvés)
-                    <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded">Prêt</span>
-                  </h3>
-                  <div className="border border-stone-100 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-stone-50 border-b border-stone-100">
-                        <tr>
-                          <th className="p-3 font-bold text-stone-400">Titre</th>
-                          <th className="p-3 font-bold text-stone-400">Auteur</th>
-                          <th className="p-3 font-bold text-stone-400">Genre</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {importPreview.slice(0, 5).map((b, i) => (
-                          <tr key={i} className="border-b border-stone-50">
-                            <td className="p-3 font-bold">{b.title}</td>
-                            <td className="p-3 text-stone-500">{b.author}</td>
-                            <td className="p-3"><span className="px-2 py-0.5 bg-stone-100 rounded text-[10px]">{b.genre}</span></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {importPreview.length > 5 && <p className="p-2 text-center text-[10px] text-stone-400 font-bold">... + {importPreview.length - 5} autres lignes</p>}
-                  </div>
-                  <button
-                    onClick={finalizeImport}
-                    className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold shadow-lg hover:bg-green-700 transition-colors transform active:scale-95"
-                  >
-                    CONFIRMER L'IMPORTATION ✨
-                  </button>
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (adminPasswordInput === 'club-lecture-2024') {
+                      setIsAdminAuthenticated(true);
+                      setAdminPasswordInput('');
+                    } else {
+                      alert('Mot de passe incorrect');
+                    }
+                  }}
+                  className="px-6 py-2 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition"
+                >
+                  Accéder
+                </button>
+              </div>
+            ) : (
+              <div className="flex-grow overflow-y-auto space-y-8 pr-2">
+                <section className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-center justify-between">
+                  <p className="text-blue-700 text-sm font-medium">Vérifiez si le système répond correctement :</p>
+                  <button onClick={testSystem} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-sm hover:bg-blue-700 transition-colors">🚀 TESTER LE SYSTÈME</button>
                 </section>
-              )}
-            </div>
+
+                {/* GESTION DES GENRES */}
+                <section className="space-y-4 border-b border-stone-100 pb-8">
+                  <h3 className="font-bold text-stone-800">🏷️ Gérer les Genres Littéraires</h3>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nouveau genre..."
+                      className="flex-1 px-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm"
+                      value={newGenre}
+                      onChange={(e) => setNewGenre(e.target.value)}
+                    />
+                    <button
+                      onClick={() => {
+                        if (!newGenre.trim()) return;
+                        const updated = [...state.genres, newGenre.trim()];
+                        setState(prev => ({ ...prev, genres: updated }));
+                        storage.saveLocalGenres(updated);
+                        storage.autoSync(state.scriptUrl, { ...state, genres: updated }, setSyncStatus); // Sync
+                        setNewGenre('');
+                      }}
+                      className="px-4 py-2 bg-stone-800 text-white rounded-xl text-sm font-bold"
+                    >Ajouter</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {state.genres.map(g => (
+                      <span key={g} className="px-3 py-1 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2">
+                        {g}
+                        <button onClick={() => {
+                          if (confirm(`Supprimer le genre "${g}" ?`)) {
+                            const updated = state.genres.filter(x => x !== g);
+                            setState(prev => ({ ...prev, genres: updated }));
+                            storage.saveLocalGenres(updated);
+                            storage.autoSync(state.scriptUrl, { ...state, genres: updated }, setSyncStatus); // Sync
+                          }
+                        }} className="text-stone-400 hover:text-red-500">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+
+                {/* GESTION DES MEMBRES */}
+                <section className="space-y-4 border-b border-stone-100 pb-8">
+                  <h3 className="font-bold text-stone-800">👥 Gérer les Membres</h3>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nouveau membre..."
+                      className="flex-1 px-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm"
+                      value={newMember}
+                      onChange={(e) => setNewMember(e.target.value)}
+                    />
+                    <button
+                      onClick={() => {
+                        if (!newMember.trim()) return;
+                        const updated = [...state.members, newMember.trim()];
+                        setState(prev => ({ ...prev, members: updated }));
+                        storage.saveLocalMembers(updated);
+                        storage.autoSync(state.scriptUrl, { ...state, members: updated }, setSyncStatus); // Sync
+                        setNewMember('');
+                      }}
+                      className="px-4 py-2 bg-stone-800 text-white rounded-xl text-sm font-bold"
+                    >Ajouter</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {state.members.map(m => (
+                      <span key={m} className="px-3 py-1 bg-white border border-stone-200 rounded-full text-xs font-medium flex items-center gap-2">
+                        {m}
+                        <button onClick={() => {
+                          if (confirm(`Supprimer le membre "${m}" ?`)) {
+                            const updated = state.members.filter(x => x !== m);
+                            setState(prev => ({ ...prev, members: updated }));
+                            storage.saveLocalMembers(updated);
+                            storage.autoSync(state.scriptUrl, { ...state, members: updated }, setSyncStatus); // Sync
+                          }
+                        }} className="text-stone-400 hover:text-red-500">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-bold text-stone-800">1. Coller vos données (CSV ou Excel)</h3>
+                    <button onClick={() => { storage.saveLocalBooks([]); setState(prev => ({ ...prev, books: [] })); alert("Bibliothèque vidée."); }} className="text-[10px] font-bold text-red-500 hover:underline">VIDER TOUT</button>
+                  </div>
+                  <textarea
+                    value={csvPasteContent}
+                    onChange={(e) => parseAndPreview(e.target.value)}
+                    placeholder="Exemple: Titre;Auteur;Genre&#10;L'étranger;Albert Camus;Roman"
+                    className="w-full h-40 p-4 text-xs font-mono bg-stone-50 border border-stone-200 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </section>
+
+                <section className="bg-purple-50 p-6 rounded-2xl border border-purple-100 space-y-4">
+                  <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                    ☁️ Synchronisation Google Sheets
+                  </h3>
+                  <p className="text-purple-700 text-xs text-justify leading-relaxed">
+                    Pour activer la sauvegarde en ligne :
+                    <br />1. Créez un Google Sheet et allez dans Extensions {'>'} Apps Script.
+                    <br />2. Collez le code fourni (google_apps_script.js).
+                    <br />3. Déployez en tant qu'application Web (Accès: "Anyone").
+                    <br />4. Collez l'URL ici :
+                  </p>
+
+                  <input
+                    type="text"
+                    placeholder="https://script.google.com/macros/s/..."
+                    value={state.scriptUrl || ''}
+                    onChange={(e) => {
+                      const url = e.target.value;
+                      setState(prev => ({ ...prev, scriptUrl: url }));
+                      storage.saveConfig(url);
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border border-purple-200 bg-white text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!state.scriptUrl) return alert("Veuillez entrer une URL valide.");
+                        const btn = document.getElementById('load-cloud-btn');
+                        if (btn) btn.innerText = "⏳ Chargement...";
+
+                        try {
+                          const result = await storage.fetchFromCloud(state.scriptUrl);
+                          if (result) {
+                            if (confirm(`Trouvé : ${result.books.length} livres, ${result.reviews.length} avis. Remplacer les données locales ?`)) {
+                              setState(prev => ({ ...prev, ...result }));
+                              storage.saveAllData(result);
+                              alert("Données chargées avec succès !");
+                            }
+                          }
+                        } catch (e: any) {
+                          alert("Erreur : " + e.message);
+                        } finally {
+                          if (btn) btn.innerText = "⬇️ CHARGER DU CLOUD";
+                        }
+                      }}
+                      id="load-cloud-btn"
+                      className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold text-xs shadow-md hover:bg-purple-700 transition-colors"
+                    >
+                      ⬇️ CHARGER DU CLOUD
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!state.scriptUrl) return alert("Veuillez entrer une URL valide.");
+                        const success = await storage.syncWithCloud(state.scriptUrl, {
+                          books: state.books,
+                          reviews: state.reviews,
+                          genres: state.genres,
+                          members: state.members
+                        });
+                        if (success.success) alert("Sauvegarde réussie !");
+                        else alert("Erreur lors de la sauvegarde.");
+                      }}
+                      className="flex-1 py-3 bg-white text-purple-600 border border-purple-200 rounded-xl font-bold text-xs shadow-sm hover:bg-purple-50 transition-colors"
+                    >
+                      ⬆️ ENVOYER VERS CLOUD
+                    </button>
+                  </div>
+                </section>
+
+                {importPreview.length > 0 && (
+                  <section className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                    <h3 className="font-bold text-stone-800 flex items-center gap-2">
+                      2. Aperçu ({importPreview.length} livres trouvés)
+                      <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded">Prêt</span>
+                    </h3>
+                    <div className="border border-stone-100 rounded-2xl overflow-hidden">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-stone-50 border-b border-stone-100">
+                          <tr>
+                            <th className="p-3 font-bold text-stone-400">Titre</th>
+                            <th className="p-3 font-bold text-stone-400">Auteur</th>
+                            <th className="p-3 font-bold text-stone-400">Genre</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {importPreview.slice(0, 5).map((b, i) => (
+                            <tr key={i} className="border-b border-stone-50">
+                              <td className="p-3 font-bold">{b.title}</td>
+                              <td className="p-3 text-stone-500">{b.author}</td>
+                              <td className="p-3"><span className="px-2 py-0.5 bg-stone-100 rounded text-[10px]">{b.genre}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {importPreview.length > 5 && <p className="p-2 text-center text-[10px] text-stone-400 font-bold">... + {importPreview.length - 5} autres lignes</p>}
+                    </div>
+                    <button
+                      onClick={finalizeImport}
+                      className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold shadow-lg hover:bg-green-700 transition-colors transform active:scale-95"
+                    >
+                      CONFIRMER L'IMPORTATION ✨
+                    </button>
+                  </section>
+                )}
+              </div>
+            )} {/* End of Authenticated check */}
 
             <button onClick={() => setIsAdminOpen(false)} className="mt-6 w-full py-3 bg-stone-100 text-stone-500 rounded-xl font-bold text-sm">Fermer la console</button>
           </div>
