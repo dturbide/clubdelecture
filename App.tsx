@@ -45,8 +45,44 @@ const App: React.FC = () => {
   const [bookForm, setBookForm] = useState({
     title: '', author: '', genre: '', coverUrl: '', summary: '', recommendations: '', personalRating: 5, addedBy: ''
   });
+  const [isSearchingCover, setIsSearchingCover] = useState(false);
+  const [coverResults, setCoverResults] = useState<string[]>([]);
 
   const csvInputRef = useRef<HTMLInputElement>(null);
+
+  // Fonction pour chercher les couvertures de livres via Open Library
+  const searchBookCover = async () => {
+    if (!bookForm.title && !bookForm.author) {
+      alert("Entrez un titre ou un auteur pour chercher une couverture.");
+      return;
+    }
+    setIsSearchingCover(true);
+    setCoverResults([]);
+    try {
+      const query = encodeURIComponent(`${bookForm.title} ${bookForm.author}`.trim());
+      const response = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=6`);
+      const data = await response.json();
+      
+      if (data.docs && data.docs.length > 0) {
+        const covers = data.docs
+          .filter((doc: any) => doc.cover_i)
+          .slice(0, 6)
+          .map((doc: any) => `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`);
+        
+        if (covers.length > 0) {
+          setCoverResults(covers);
+        } else {
+          alert("Aucune couverture trouvée pour ce livre.");
+        }
+      } else {
+        alert("Aucun résultat trouvé.");
+      }
+    } catch (error) {
+      console.error("Erreur recherche couverture:", error);
+      alert("Erreur lors de la recherche. Réessayez.");
+    }
+    setIsSearchingCover(false);
+  };
 
   useEffect(() => {
     try {
@@ -725,6 +761,55 @@ const App: React.FC = () => {
                 <input required type="text" placeholder="Titre" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} />
                 <input required type="text" placeholder="Auteur" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} />
               </div>
+
+              {/* Recherche de couverture */}
+              <div className="border border-dashed border-stone-200 rounded-xl p-4 bg-stone-50">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">🖼️ Couverture</label>
+                  <button
+                    type="button"
+                    onClick={searchBookCover}
+                    disabled={isSearchingCover}
+                    className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {isSearchingCover ? '⏳ Recherche...' : '🔍 Chercher'}
+                  </button>
+                </div>
+                {bookForm.coverUrl && (
+                  <div className="flex items-center gap-3 mb-2">
+                    <img src={bookForm.coverUrl} alt="Couverture" className="w-12 h-16 object-cover rounded shadow" />
+                    <input
+                      type="text"
+                      placeholder="URL de la couverture"
+                      className="flex-1 px-3 py-2 rounded-lg border border-stone-200 text-xs"
+                      value={bookForm.coverUrl}
+                      onChange={e => setBookForm({ ...bookForm, coverUrl: e.target.value })}
+                    />
+                    <button type="button" onClick={() => setBookForm({ ...bookForm, coverUrl: '' })} className="text-red-500 text-xs">✕</button>
+                  </div>
+                )}
+                {coverResults.length > 0 && (
+                  <div>
+                    <p className="text-xs text-stone-500 mb-2">Sélectionnez une couverture :</p>
+                    <div className="grid grid-cols-6 gap-2">
+                      {coverResults.map((url, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => { setBookForm({ ...bookForm, coverUrl: url }); setCoverResults([]); }}
+                          className={`aspect-[2/3] rounded overflow-hidden border-2 hover:border-amber-500 transition-all ${bookForm.coverUrl === url ? 'border-amber-500 ring-2 ring-amber-300' : 'border-stone-200'}`}
+                        >
+                          <img src={url} alt={`Option ${i + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!bookForm.coverUrl && coverResults.length === 0 && (
+                  <p className="text-xs text-stone-400 text-center py-2">Entrez titre/auteur puis cliquez "Chercher"</p>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Genre</label>
