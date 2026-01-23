@@ -93,10 +93,23 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
         console.warn("Format de données suspect (pas de Livres/Avis ni books/reviews):", data);
       }
 
-      const rawBooks = data.Livres || data.books || [];
-      const rawReviews = data.Avis || data.reviews || [];
+      // Helper to clean keys (remove \n from headers)
+      const cleanKeys = (obj: any) => {
+        const newObj: any = {};
+        Object.keys(obj).forEach(key => {
+          // Log weird keys to help debug
+          if (key.includes('\n')) console.log(`Found newline in key: "${key}" -> cleaned to "${key.trim()}"`);
+          newObj[key.trim()] = obj[key];
+        });
+        return newObj;
+      };
+
+      const rawBooks = (data.Livres || data.books || []).map(cleanKeys);
+      const rawReviews = (data.Avis || data.reviews || []).map(cleanKeys);
       const rawGenres = data.Genres || data.genres || [];
       const rawMembers = data.Membres || data.members || [];
+
+      console.log("Raw books after cleaning:", rawBooks[0]); // Inspect first book
 
       // Map French headers (or English fallbacks) back to internal structure
       const books = rawBooks.map((b: any) => ({
@@ -112,11 +125,15 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
         personalRating: b.personalRating || 5
       }));
 
+      console.log("Mapped books sample:", books[0]);
+
       // Parse nested JSON if needed
       const reviews = rawReviews.map((r: any) => ({
         ...r,
         aiAnalysis: typeof r.aiAnalysis === 'string' ? JSON.parse(r.aiAnalysis) : r.aiAnalysis
       }));
+
+      if (books.length === 0) console.warn("Attention: Aucune donnée 'livres' trouvée dans la réponse JSON.");
 
       return {
         books,
