@@ -34,10 +34,15 @@ const BookRow: React.FC<BookRowProps> = ({ book, currentUser, reviews, onClick, 
             onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_COVER; }}
           />
         </div>
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-4 items-center">
           <div className="md:col-span-2">
             <h3 className="font-serif text-lg font-bold text-stone-800 leading-tight group-hover:text-amber-600 transition-colors">{book.title}</h3>
             <p className="text-sm text-stone-500 italic">{book.author}</p>
+            {/* Mobile: Genre et Proposé par sur la même ligne */}
+            <div className="flex gap-3 mt-1 md:hidden">
+              <span className="text-xs text-stone-500">{book.genre}</span>
+              <span className="text-xs text-amber-700">• {book.addedBy}</span>
+            </div>
           </div>
           <div className="hidden md:block">
             <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Genre</span>
