@@ -36,12 +36,12 @@ const BookRow: React.FC<BookRowProps> = ({ book, currentUser, reviews, onClick, 
         </div>
         <div className="flex-grow grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-4 items-center">
           <div className="md:col-span-2">
-            <h3 className="font-serif text-lg font-bold text-stone-800 leading-tight group-hover:text-amber-600 transition-colors">{book.title}</h3>
+            <h3 className="font-serif text-base sm:text-lg font-bold text-stone-800 leading-tight group-hover:text-amber-600 transition-colors">{book.title}</h3>
             <p className="text-sm text-stone-500 italic">{book.author}</p>
-            {/* Mobile: Genre et Proposé par sur la même ligne */}
-            <div className="flex gap-3 mt-1 md:hidden">
-              <span className="text-xs text-stone-500">{book.genre}</span>
-              <span className="text-xs text-amber-700">• {book.addedBy}</span>
+            {/* Mobile: Genre et Proposé par empilés */}
+            <div className="flex flex-col gap-0.5 mt-1.5 md:hidden">
+              <span className="text-xs text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full w-fit">{book.genre}</span>
+              <span className="text-xs"><span className="text-stone-400">Proposé par </span><span className="text-amber-700 font-medium">{book.addedBy}</span></span>
             </div>
           </div>
           <div className="hidden md:block">
