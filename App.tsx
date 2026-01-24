@@ -48,7 +48,7 @@ const App: React.FC = () => {
   const [filterMember, setFilterMember] = useState('Tous');
   const [filterYear, setFilterYear] = useState('Tous');
   const [sortBy, setSortBy] = useState<'recent' | 'alpha'>('recent');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
