@@ -40,7 +40,7 @@ const App: React.FC = () => {
 
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
 
-  const [currentUser, setCurrentUser] = useState<string>('Visiteur');
+  const [currentUser, setCurrentUser] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
@@ -200,8 +200,7 @@ const App: React.FC = () => {
         // Ensure members has at least default values
         if (members.length === 0) members = ['Admin', 'Visiteur'];
         setState({ books, reviews, genres, members, scriptUrl, isLoading: false });
-        // Set currentUser to the first member in the list
-        setCurrentUser(members[0]);
+        // Ne pas définir currentUser - laisser l'utilisateur choisir
       };
       init();
     } catch (e) {
@@ -530,6 +529,7 @@ const App: React.FC = () => {
           <div className="bg-stone-900 text-white p-6 rounded-2xl shadow-xl">
             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">Membre Actif</label>
             <select value={currentUser} onChange={(e) => setCurrentUser(e.target.value)} className="w-full bg-stone-800 border-none rounded-xl py-2.5 px-3 text-sm outline-none">
+              <option value="">— Choisir —</option>
               {state.members.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
