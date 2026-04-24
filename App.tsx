@@ -76,7 +76,7 @@ const App: React.FC = () => {
 
   const csvInputRef = useRef<HTMLInputElement>(null);
 
-  // Fonction avancée pour chercher les couvertures (plusieurs sources)
+  // Fonction avancée pour chercher les couvertures (plusieurs sources, francophones en priorité)
   const searchBookCover = async () => {
     if (!bookForm.title && !bookForm.author) {
       alert("Entrez un titre ou un auteur pour chercher une couverture.");
@@ -84,84 +84,112 @@ const App: React.FC = () => {
     }
     setIsSearchingCover(true);
     setCoverResults([]);
-    
+
     const allCovers: string[] = [];
+    const MAX_COVERS = 20;
     const title = bookForm.title.trim();
     const author = bookForm.author.trim();
-    
+    const addCover = (url: string) => {
+      if (url && !allCovers.includes(url) && allCovers.length < MAX_COVERS) allCovers.push(url);
+    };
+
     try {
-      // Stratégie 1: Open Library - recherche exacte
+      // Stratégie 1 : Google Books FRANÇAIS (prioritaire pour livres francophones)
       try {
-        const query1 = encodeURIComponent(`${title} ${author}`);
-        const res1 = await fetch(`https://openlibrary.org/search.json?q=${query1}&limit=6`);
-        const data1 = await res1.json();
-        if (data1.docs) {
-          data1.docs.forEach((doc: any) => {
-            if (doc.cover_i && allCovers.length < 12) {
-              allCovers.push(`https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`);
+        const query = encodeURIComponent(`${title} ${author}`);
+        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&langRestrict=fr&maxResults=10`);
+        const data = await res.json();
+        if (data.items) {
+          data.items.forEach((item: any) => {
+            const img = item.volumeInfo?.imageLinks?.thumbnail || item.volumeInfo?.imageLinks?.smallThumbnail;
+            if (img) {
+              const url = img.replace('zoom=1', 'zoom=2').replace('http://', 'https://');
+              addCover(url);
             }
+          });
+        }
+      } catch (e) { console.log("Google Books FR failed"); }
+
+      // Stratégie 2 : iTunes Books (API publique, souvent excellentes couvertures françaises)
+      try {
+        const query = encodeURIComponent(`${title} ${author}`.trim());
+        const res = await fetch(`https://itunes.apple.com/search?term=${query}&media=ebook&limit=10&country=fr`);
+        const data = await res.json();
+        if (data.results) {
+          data.results.forEach((item: any) => {
+            if (item.artworkUrl100) {
+              // Upgrader la taille de la miniature (100x100 → 600x600)
+              const hdUrl = item.artworkUrl100.replace(/\/\d+x\d+bb\./, '/600x600bb.');
+              addCover(hdUrl);
+            }
+          });
+        }
+      } catch (e) { console.log("iTunes Books failed"); }
+
+      // Stratégie 3 : Open Library - recherche exacte
+      try {
+        const query = encodeURIComponent(`${title} ${author}`);
+        const res = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=10`);
+        const data = await res.json();
+        if (data.docs) {
+          data.docs.forEach((doc: any) => {
+            if (doc.cover_i) addCover(`https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`);
           });
         }
       } catch (e) { console.log("Open Library exact failed"); }
 
-      // Stratégie 2: Google Books API
-      try {
-        const query2 = encodeURIComponent(`${title} ${author}`);
-        const res2 = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query2}&maxResults=6`);
-        const data2 = await res2.json();
-        if (data2.items) {
-          data2.items.forEach((item: any) => {
-            if (item.volumeInfo?.imageLinks?.thumbnail && allCovers.length < 12) {
-              const url = item.volumeInfo.imageLinks.thumbnail
-                .replace('zoom=1', 'zoom=2')
-                .replace('http://', 'https://');
-              if (!allCovers.includes(url)) allCovers.push(url);
-            }
-          });
-        }
-      } catch (e) { console.log("Google Books failed"); }
+      // Stratégie 4 : Google Books SANS restriction langue (fallback international)
+      if (allCovers.length < 6) {
+        try {
+          const query = encodeURIComponent(`${title} ${author}`);
+          const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=10`);
+          const data = await res.json();
+          if (data.items) {
+            data.items.forEach((item: any) => {
+              const img = item.volumeInfo?.imageLinks?.thumbnail || item.volumeInfo?.imageLinks?.smallThumbnail;
+              if (img) {
+                const url = img.replace('zoom=1', 'zoom=2').replace('http://', 'https://');
+                addCover(url);
+              }
+            });
+          }
+        } catch (e) { console.log("Google Books intl failed"); }
+      }
 
-      // Stratégie 3: Open Library - titre seul
+      // Stratégie 5 : Open Library par titre seul
       if (allCovers.length < 6 && title) {
         try {
           const cleanTitle = title.replace(/[,.:;!?()]/g, '').trim();
-          const query3 = encodeURIComponent(cleanTitle);
-          const res3 = await fetch(`https://openlibrary.org/search.json?title=${query3}&limit=6`);
-          const data3 = await res3.json();
-          if (data3.docs) {
-            data3.docs.forEach((doc: any) => {
-              if (doc.cover_i && allCovers.length < 12) {
-                const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
-                if (!allCovers.includes(url)) allCovers.push(url);
-              }
+          const query = encodeURIComponent(cleanTitle);
+          const res = await fetch(`https://openlibrary.org/search.json?title=${query}&limit=10`);
+          const data = await res.json();
+          if (data.docs) {
+            data.docs.forEach((doc: any) => {
+              if (doc.cover_i) addCover(`https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`);
             });
           }
         } catch (e) { console.log("Open Library title failed"); }
       }
 
-      // Stratégie 4: Open Library - auteur seul
+      // Stratégie 6 : Open Library par auteur seul
       if (allCovers.length < 6 && author) {
         try {
           const cleanAuthor = author.replace(/^(De |Par )/i, '').split(/[|,]/)[0].trim();
-          const query4 = encodeURIComponent(cleanAuthor);
-          const res4 = await fetch(`https://openlibrary.org/search.json?author=${query4}&limit=6`);
-          const data4 = await res4.json();
-          if (data4.docs) {
-            data4.docs.forEach((doc: any) => {
-              if (doc.cover_i && allCovers.length < 12) {
-                const url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
-                if (!allCovers.includes(url)) allCovers.push(url);
-              }
+          const query = encodeURIComponent(cleanAuthor);
+          const res = await fetch(`https://openlibrary.org/search.json?author=${query}&limit=10`);
+          const data = await res.json();
+          if (data.docs) {
+            data.docs.forEach((doc: any) => {
+              if (doc.cover_i) addCover(`https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`);
             });
           }
         } catch (e) { console.log("Open Library author failed"); }
       }
 
-      // Résultats
       if (allCovers.length > 0) {
-        setCoverResults(allCovers.slice(0, 12));
+        setCoverResults(allCovers);
       } else {
-        alert("Aucune couverture trouvée. Essayez avec un titre plus simple.");
+        alert("Aucune couverture trouvée. Utilisez le bouton '🌐 Google Images' pour en chercher une manuellement.");
       }
     } catch (error) {
       console.error("Erreur recherche couverture:", error);
@@ -587,12 +615,21 @@ const App: React.FC = () => {
 
       <main className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <aside className="space-y-6">
-          <div className="bg-stone-900 text-white p-6 rounded-2xl shadow-xl">
-            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">Membre Actif</label>
-            <select value={currentUser} onChange={(e) => setCurrentUser(e.target.value)} className="w-full bg-stone-800 border-none rounded-xl py-2.5 px-3 text-sm outline-none">
-              <option value="">— Choisir —</option>
-              {state.members.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+          <div className="bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-lg shrink-0">👤</span>
+              <div className="min-w-0">
+                <p className="text-[10px] text-stone-400 uppercase tracking-widest leading-none">Connecté·e</p>
+                <p className="text-sm font-bold truncate">{currentUser || 'Aucun profil'}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setProfilePickerDraft(currentUser); setShowProfilePicker(true); }}
+              className="text-xs font-bold text-amber-400 hover:text-amber-300 underline-offset-2 hover:underline shrink-0"
+            >
+              changer
+            </button>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 space-y-4">
             {/* Recherche */}
@@ -1073,31 +1110,57 @@ const App: React.FC = () => {
               </div>
 
               {/* Recherche de couverture */}
-              <div className="border border-dashed border-stone-200 rounded-xl p-4 bg-stone-50">
-                <div className="flex items-center justify-between mb-2">
+              <div className="border border-dashed border-stone-200 rounded-xl p-4 bg-stone-50 space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">🖼️ Couverture</label>
-                  <button
-                    type="button"
-                    onClick={searchBookCover}
-                    disabled={isSearchingCover}
-                    className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    {isSearchingCover ? '⏳ Recherche...' : '🔍 Chercher'}
-                  </button>
-                </div>
-                {bookForm.coverUrl && (
-                  <div className="flex items-center gap-3 mb-2">
-                    <img src={bookForm.coverUrl} alt="Couverture" className="w-12 h-16 object-cover rounded shadow" />
-                    <input
-                      type="text"
-                      placeholder="URL de la couverture"
-                      className="flex-1 px-3 py-2 rounded-lg border border-stone-200 text-xs"
-                      value={bookForm.coverUrl}
-                      onChange={e => setBookForm({ ...bookForm, coverUrl: e.target.value })}
-                    />
-                    <button type="button" onClick={() => setBookForm({ ...bookForm, coverUrl: '' })} className="text-red-500 text-xs">✕</button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={searchBookCover}
+                      disabled={isSearchingCover}
+                      className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {isSearchingCover ? '⏳ Recherche...' : '🔍 Chercher'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const q = encodeURIComponent(`couverture livre ${bookForm.title} ${bookForm.author}`.trim());
+                        window.open(`https://www.google.com/search?q=${q}&tbm=isch`, '_blank');
+                      }}
+                      disabled={!bookForm.title && !bookForm.author}
+                      className="px-3 py-1 bg-stone-700 text-white rounded-lg text-xs font-bold hover:bg-stone-800 transition-colors disabled:opacity-50"
+                      title="Ouvrir Google Images — clic droit sur une image → Copier l'adresse de l'image → coller ci-dessous"
+                    >
+                      🌐 Google Images
+                    </button>
                   </div>
-                )}
+                </div>
+
+                {/* Champ URL toujours visible avec aperçu */}
+                <div className="flex items-center gap-3">
+                  {bookForm.coverUrl ? (
+                    <img
+                      src={bookForm.coverUrl}
+                      alt="Aperçu couverture"
+                      className="w-12 h-16 object-cover rounded shadow shrink-0"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.3'; }}
+                    />
+                  ) : (
+                    <div className="w-12 h-16 rounded bg-stone-200 flex items-center justify-center text-stone-400 text-xl shrink-0">?</div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder="Collez l'URL d'une image ici (Google Images, Amazon, Babelio…)"
+                    className="flex-1 px-3 py-2 rounded-lg border border-stone-200 text-xs min-w-0"
+                    value={bookForm.coverUrl}
+                    onChange={e => setBookForm({ ...bookForm, coverUrl: e.target.value })}
+                  />
+                  {bookForm.coverUrl && (
+                    <button type="button" onClick={() => setBookForm({ ...bookForm, coverUrl: '' })} className="text-red-500 text-xs shrink-0" title="Effacer">✕</button>
+                  )}
+                </div>
+
                 {coverResults.length > 0 && (
                   <div>
                     <p className="text-xs text-stone-500 mb-2">Sélectionnez une couverture ({coverResults.length} trouvées) :</p>
@@ -1115,8 +1178,11 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 )}
-                {!bookForm.coverUrl && coverResults.length === 0 && (
-                  <p className="text-xs text-stone-400 text-center py-2">Entrez titre/auteur puis cliquez "Chercher"</p>
+
+                {!bookForm.coverUrl && coverResults.length === 0 && !isSearchingCover && (
+                  <p className="text-xs text-stone-400 text-center">
+                    Cliquez <strong>🔍 Chercher</strong> pour une recherche automatique, ou <strong>🌐 Google Images</strong> si rien ne convient.
+                  </p>
                 )}
               </div>
 
