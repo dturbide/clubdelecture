@@ -1082,8 +1082,8 @@ const App: React.FC = () => {
 
       {/* ADD/EDIT BOOK MODAL */}
       {isAddBookOpen && (
-        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-lg z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-5 sm:p-8 max-w-xl w-full shadow-2xl">
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-lg z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-[2rem] p-5 sm:p-8 max-w-xl w-full shadow-2xl my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
             <h2 className="font-serif text-3xl font-bold mb-6 text-stone-800">{editingBook ? 'Modifier le livre' : 'Nouveau livre'}</h2>
             <form onSubmit={(e) => {
               e.preventDefault();
