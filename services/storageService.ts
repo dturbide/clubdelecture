@@ -175,7 +175,7 @@ export const fetchFromCloud = async (url: string): Promise<{ books: Book[], revi
 
 let syncTimeout: any = null;
 let lastSyncTime = 0;
-const SYNC_DEBOUNCE_MS = 5000; // Wait 5 seconds after last change
+const SYNC_DEBOUNCE_MS = 1500; // Wait 1.5 seconds after last change (réduit pour éviter les pertes lors de fermeture rapide)
 
 /**
  * Trigger automatic background sync

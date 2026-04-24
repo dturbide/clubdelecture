@@ -40,7 +40,11 @@ const App: React.FC = () => {
 
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
 
-  const [currentUser, setCurrentUser] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<string>(() => {
+    return localStorage.getItem('clubdelecture_currentUser') || '';
+  });
+  const [showProfilePicker, setShowProfilePicker] = useState(false);
+  const [profilePickerDraft, setProfilePickerDraft] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
@@ -182,13 +186,25 @@ const App: React.FC = () => {
           try {
             const cloudData = await storage.fetchFromCloud(scriptUrl);
             if (cloudData && cloudData.books.length > 0) {
-              books = cloudData.books;
-              reviews = cloudData.reviews;
+              // MERGE: conserver les livres locaux dont l'ID est absent du cloud
+              // (= livres ajoutés mais non encore synchronisés, p.ex. si l'onglet a été fermé avant la fin du debounce)
+              const cloudBookIds = new Set(cloudData.books.map(b => b.id));
+              const unsyncedBooks = books.filter(b => !cloudBookIds.has(b.id));
+              const cloudReviewIds = new Set(cloudData.reviews.map(r => r.id));
+              const unsyncedReviews = reviews.filter(r => !cloudReviewIds.has(r.id));
+
+              books = [...cloudData.books, ...unsyncedBooks];
+              reviews = [...cloudData.reviews, ...unsyncedReviews];
               genres = cloudData.genres.length > 0 ? cloudData.genres : genres;
               members = cloudData.members.length > 0 ? cloudData.members : members;
               // Mettre à jour le cache local
               storage.saveAllData({ books, reviews, genres, members });
-              console.log(`✅ ${books.length} livres synchronisés depuis Google Sheets`);
+              console.log(`✅ ${cloudData.books.length} livres depuis Google Sheets` + (unsyncedBooks.length > 0 ? ` (+ ${unsyncedBooks.length} local(aux) non synchronisé(s), re-sync en cours...)` : ''));
+
+              // Si des livres locaux étaient absents du cloud, forcer un re-sync pour les sauver
+              if (unsyncedBooks.length > 0 || unsyncedReviews.length > 0) {
+                storage.autoSync(scriptUrl, { books, reviews, genres, members }, setSyncStatus);
+              }
             }
           } catch (e) {
             console.warn("⚠️ Impossible de charger depuis Google Sheets, utilisation des données locales:", e);
@@ -209,6 +225,21 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Persister le profil sélectionné pour ne pas le redemander à chaque visite
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('clubdelecture_currentUser', currentUser);
+    }
+  }, [currentUser]);
+
+  // Ouvrir la popup de sélection de profil après login si aucun profil n'est mémorisé
+  useEffect(() => {
+    if (isAppAuthenticated && !state.isLoading && !currentUser && state.members.length > 0) {
+      setProfilePickerDraft('');
+      setShowProfilePicker(true);
+    }
+  }, [isAppAuthenticated, state.isLoading, currentUser, state.members.length]);
+
   // Rafraîchir automatiquement quand l'utilisateur revient sur l'onglet
   useEffect(() => {
     const handleVisibilityChange = async () => {
@@ -217,25 +248,41 @@ const App: React.FC = () => {
         try {
           const cloudData = await storage.fetchFromCloud(state.scriptUrl);
           if (cloudData && cloudData.books.length > 0) {
-            // Vérifier si les données ont changé (comparaison simple par nombre)
-            const hasChanges = cloudData.books.length !== state.books.length ||
-              cloudData.reviews.length !== state.reviews.length;
-            
+            // MERGE: conserver les livres locaux dont l'ID est absent du cloud (non encore synchronisés)
+            const cloudBookIds = new Set(cloudData.books.map(b => b.id));
+            const unsyncedBooks = state.books.filter(b => !cloudBookIds.has(b.id));
+            const cloudReviewIds = new Set(cloudData.reviews.map(r => r.id));
+            const unsyncedReviews = state.reviews.filter(r => !cloudReviewIds.has(r.id));
+
+            const mergedBooks = [...cloudData.books, ...unsyncedBooks];
+            const mergedReviews = [...cloudData.reviews, ...unsyncedReviews];
+
+            // Vérifier si les données cloud ont changé (comparaison par nombre)
+            const hasChanges = mergedBooks.length !== state.books.length ||
+              mergedReviews.length !== state.reviews.length;
+
             if (hasChanges) {
-              console.log("🔄 Nouvelles données détectées, mise à jour...");
+              console.log(`🔄 Mise à jour: ${cloudData.books.length} cloud + ${unsyncedBooks.length} local non-syncés`);
+              const mergedGenres = cloudData.genres.length > 0 ? cloudData.genres : state.genres;
+              const mergedMembers = cloudData.members.length > 0 ? cloudData.members : state.members;
               setState(prev => ({
                 ...prev,
-                books: cloudData.books,
-                reviews: cloudData.reviews,
-                genres: cloudData.genres.length > 0 ? cloudData.genres : prev.genres,
-                members: cloudData.members.length > 0 ? cloudData.members : prev.members
+                books: mergedBooks,
+                reviews: mergedReviews,
+                genres: mergedGenres,
+                members: mergedMembers
               }));
               storage.saveAllData({
-                books: cloudData.books,
-                reviews: cloudData.reviews,
-                genres: cloudData.genres,
-                members: cloudData.members
+                books: mergedBooks,
+                reviews: mergedReviews,
+                genres: mergedGenres,
+                members: mergedMembers
               });
+
+              // Si des livres locaux étaient absents du cloud, forcer un re-sync
+              if (unsyncedBooks.length > 0 || unsyncedReviews.length > 0) {
+                storage.autoSync(state.scriptUrl, { books: mergedBooks, reviews: mergedReviews, genres: mergedGenres, members: mergedMembers }, setSyncStatus);
+              }
             } else {
               console.log("✅ Données déjà à jour");
             }
@@ -405,7 +452,7 @@ const App: React.FC = () => {
   if (!isAppAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-amber-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full border border-stone-100">
+        <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-8 max-w-md w-full border border-stone-100">
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">📚</div>
             <h1 className="font-serif text-3xl font-bold text-stone-800 mb-2">Livres et tes pensées</h1>
@@ -489,8 +536,22 @@ const App: React.FC = () => {
                 if (result) {
                   console.log("Sync - Données reçues:", result);
                   console.log(`Sync - ${result.books.length} livres, ${result.genres.length} genres, ${result.members.length} membres`);
-                  setState(prev => ({ ...prev, ...result }));
-                  storage.saveAllData(result);
+                  // MERGE: préserver les livres locaux non-syncés (ID absent du cloud)
+                  const cloudBookIds = new Set(result.books.map(b => b.id));
+                  const unsyncedBooks = state.books.filter(b => !cloudBookIds.has(b.id));
+                  const cloudReviewIds = new Set(result.reviews.map(r => r.id));
+                  const unsyncedReviews = state.reviews.filter(r => !cloudReviewIds.has(r.id));
+                  const merged = {
+                    books: [...result.books, ...unsyncedBooks],
+                    reviews: [...result.reviews, ...unsyncedReviews],
+                    genres: result.genres,
+                    members: result.members
+                  };
+                  setState(prev => ({ ...prev, ...merged }));
+                  storage.saveAllData(merged);
+                  if (unsyncedBooks.length > 0 || unsyncedReviews.length > 0) {
+                    storage.autoSync(state.scriptUrl, merged, setSyncStatus);
+                  }
                   setSyncStatus('success');
                   setTimeout(() => setSyncStatus('idle' as any), 3000);
                 }
@@ -510,7 +571,7 @@ const App: React.FC = () => {
           <button onClick={() => setIsGuideOpen(true)} className="p-2.5 bg-white rounded-xl shadow-sm border border-stone-200 text-sm font-bold hover:bg-blue-50 transition-colors" title="Guide d'utilisation">
             ❓
           </button>
-          <button onClick={() => setIsAdminOpen(true)} className="px-5 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-amber-700 transition-colors">⚙️ ADMINISTRATION</button>
+          <button onClick={() => setIsAdminOpen(true)} className="px-3 sm:px-5 py-2.5 bg-amber-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-amber-700 transition-colors" title="Administration">⚙️ <span className="hidden sm:inline">ADMINISTRATION</span></button>
           <button 
             onClick={() => {
               sessionStorage.removeItem('clubdelecture_auth');
@@ -674,10 +735,53 @@ const App: React.FC = () => {
         </button>
       )}
 
+      {/* MODAL DE SÉLECTION DE PROFIL (apparaît une fois au premier login) */}
+      {showProfilePicker && (
+        <div className="fixed inset-0 bg-stone-900/90 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-5 sm:p-8 max-w-md w-full shadow-2xl border border-stone-100">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">👋</div>
+              <h2 className="font-serif text-2xl font-bold text-stone-800 mb-2">Bienvenue !</h2>
+              <p className="text-stone-500 text-sm">Qui es-tu ? Sélectionne ton nom pour qu'on puisse attribuer tes livres et tes avis.</p>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!profilePickerDraft) return;
+              setCurrentUser(profilePickerDraft);
+              setShowProfilePicker(false);
+            }} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-2">Ton profil</label>
+                <select
+                  required
+                  autoFocus
+                  value={profilePickerDraft}
+                  onChange={(e) => setProfilePickerDraft(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none focus:ring-2 focus:ring-amber-500 text-lg bg-white"
+                >
+                  <option value="">— Choisir —</option>
+                  {state.members.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={!profilePickerDraft}
+                className="w-full py-4 bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continuer
+              </button>
+              <p className="text-center text-xs text-stone-400">
+                Tu pourras changer ce choix plus tard via "Membre Actif" dans la barre latérale.
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ADMIN MODAL */}
       {isAdminOpen && (
         <div className="fixed inset-0 bg-stone-900/90 backdrop-blur-md z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-[2.5rem] p-5 sm:p-8 max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="font-serif text-3xl font-bold text-stone-800">Administration</h2>
@@ -942,7 +1046,7 @@ const App: React.FC = () => {
       {/* ADD/EDIT BOOK MODAL */}
       {isAddBookOpen && (
         <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-lg z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-xl w-full shadow-2xl">
+          <div className="bg-white rounded-[2rem] p-5 sm:p-8 max-w-xl w-full shadow-2xl">
             <h2 className="font-serif text-3xl font-bold mb-6 text-stone-800">{editingBook ? 'Modifier le livre' : 'Nouveau livre'}</h2>
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -963,7 +1067,7 @@ const App: React.FC = () => {
               setIsAddBookOpen(false);
               setEditingBook(null);
             }} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input required type="text" placeholder="Titre" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} />
                 <input required type="text" placeholder="Auteur" className="w-full px-4 py-3 rounded-xl border border-stone-200" value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} />
               </div>
@@ -1016,7 +1120,7 @@ const App: React.FC = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest block mb-1">Genre</label>
                   <select className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white" value={bookForm.genre} onChange={e => setBookForm({ ...bookForm, genre: e.target.value })}>
